@@ -18,6 +18,10 @@
 #include "cstr_util.h"
 #include "ffmpeg_core_version.h"
 
+#if HAVE_WASAPI
+#include "wasapi.h"
+#endif
+
 #define CODEPAGE_SIZE 3
 #define DEVICE_NAME_LIST struct LinkedList<char*>*
 
@@ -33,6 +37,9 @@ void tfree(T* data) {
 void free_music_handle(MusicHandle* handle) {
     if (!handle) return;
     if (handle->device_id) SDL_CloseAudioDevice(handle->device_id);
+#if HAVE_WASAPI
+    if (handle->wasapi) close_WASAPI_device(handle);
+#endif
     if (handle->thread) {
         DWORD status;
         while (GetExitCodeThread(handle->thread, &status)) {
@@ -69,6 +76,11 @@ void free_music_handle(MusicHandle* handle) {
     if (handle->sdl_initialized) {
         SDL_QuitSubSystem(SDL_INIT_AUDIO);
     }
+#if HAVE_WASAPI
+    if (handle->wasapi_initialized) {
+        uninit_WASAPI();
+    }
+#endif
     if (handle->s && handle->settings_is_alloc) {
         free_ffmpeg_core_settings(handle->s);
     }
@@ -219,6 +231,11 @@ int ffmpeg_core_open3(const wchar_t* url, MusicHandle** h, FfmpegCoreSettings* s
     }
     handle->first_pts = INT64_MIN;
     handle->part_end_pts = INT64_MAX;
+#if HAVE_WASAPI
+    if (handle->s->use_wasapi) {
+        handle->is_use_wasapi = 1;
+    }
+#endif
     handle->is_cda = is_cda_file(u.c_str());
     if (handle->is_cda) {
         if ((re = read_cda_file(handle, u.c_str()))) {
@@ -253,9 +270,21 @@ int ffmpeg_core_open3(const wchar_t* url, MusicHandle** h, FfmpegCoreSettings* s
     if ((re = open_decoder(handle))) {
         goto end;
     }
+#if HAVE_WASAPI
+    if (handle->is_use_wasapi) {
+        if ((re = init_wasapi_output(handle, d.empty() ? nullptr : d.c_str()))) {
+            goto end;
+        }
+    } else {
+        if ((re = init_output(handle, d.empty() ? nullptr : d.c_str()))) {
+            goto end;
+        }
+    }
+#else
     if ((re = init_output(handle, d.empty() ? nullptr : d.c_str()))) {
         goto end;
     }
+#endif
     if ((re = init_filters(handle))) {
         goto end;
     }
@@ -338,14 +367,30 @@ end:
 
 int ffmpeg_core_play(MusicHandle* handle) {
     if (!handle) return FFMPEG_CORE_ERR_NULLPTR;
+#if HAVE_WASAPI
+    if (handle->is_use_wasapi) {
+        play_WASAPI_device(handle, 1);
+    } else {
+        SDL_PauseAudioDevice(handle->device_id, 0);
+    }
+#else
     SDL_PauseAudioDevice(handle->device_id, 0);
+#endif
     handle->is_playing = 1;
     return FFMPEG_CORE_ERR_OK;
 }
 
 int ffmpeg_core_pause(MusicHandle* handle) {
     if (!handle) return FFMPEG_CORE_ERR_NULLPTR;
+#if HAVE_WASAPI
+    if (handle->is_use_wasapi) {
+        play_WASAPI_device(handle, 0);
+    } else {
+        SDL_PauseAudioDevice(handle->device_id, 1);
+    }
+#else
     SDL_PauseAudioDevice(handle->device_id, 1);
+#endif
     handle->is_playing = 0;
     return FFMPEG_CORE_ERR_OK;
 }
@@ -630,6 +675,22 @@ const wchar_t* ffmpeg_core_get_err_msg2(int err) {
             return L"Failed to parse url.";
         case FFMPEG_CORE_ERR_FAILED_SET_EQUALIZER_CHANNEL:
             return L"Failed to set equalizer.";
+        case FFMPEG_CORE_ERR_FAILED_INIT_WASAPI:
+            return L"Failed to initialize WASAPI.";
+        case FFMEPG_CORE_ERR_FAILED_GET_WASAPI_DEVICE_PROP:
+            return L"Failed to get WASAPI audio device's property.";
+        case FFMPEG_CORE_ERR_WASAPI_NOT_INITED:
+            return L"WASAPI is not initialized.";
+        case FFMPEG_CORE_ERR_WASAPI_DEVICE_NOT_FOUND:
+            return L"Can not found specified device.";
+        case FFMPEG_CORE_ERR_WASAPI_FAILED_OPEN_DEVICE:
+            return L"Failed to open audio device.";
+        case FFMPEG_CORE_ERR_INVALID_DEVICE_NAME:
+            return L"Device name contains invalid chars.";
+        case FFMPEG_CORE_ERR_WASAPI_NO_SUITABLE_FORMAT:
+            return L"Can not find suitable format for device.";
+        case FFMPEG_CORE_ERR_FAILED_CREATE_EVENT:
+            return L"Failed to create new event.";
         default:
             return L"Unknown error.";
     }
@@ -724,4 +785,32 @@ DeviceNameList* ffmpeg_core_get_audio_devices() {
 end:
     SDL_QuitSubSystem(SDL_INIT_AUDIO);
     return (DeviceNameList*)list;
+}
+
+int ffmpeg_core_is_wasapi_supported() {
+#if HAVE_WASAPI
+    return 1;
+#else
+    return 0;
+#endif
+}
+
+int ffmpeg_core_settings_set_use_WASAPI(FfmpegCoreSettings* s, int enable) {
+    if (!s) return 1;
+#if HAVE_WASAPI
+    s->use_wasapi = enable ? 1 : 0;
+    return 0;
+#else
+    return enable ? 1 : 0;
+#endif
+}
+
+int ffmpeg_core_settings_set_enable_exclusive(FfmpegCoreSettings* s, int enable) {
+    if (!s) return 1;
+#if HAVE_WASAPI
+    s->enable_exclusive = enable ? 1 : 0;
+    return 0;
+#else
+    return enable ? 1 : 0;
+#endif
 }

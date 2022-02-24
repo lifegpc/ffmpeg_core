@@ -5,6 +5,7 @@
 extern "C" {
 #endif
 #include "../ffmpeg_core.h"
+#include "ffmpeg_core_config.h"
 #include "libavformat/avformat.h"
 #include "libavcodec/avcodec.h"
 #include "libavdevice/avdevice.h"
@@ -12,6 +13,7 @@ extern "C" {
 #include "libavutil/audio_fifo.h"
 #include "libavutil/opt.h"
 #include "libavutil/rational.h"
+#include "libavutil/timestamp.h"
 #include "libavfilter/avfilter.h"
 #include "libavfilter/buffersink.h"
 #include "libavfilter/buffersrc.h"
@@ -53,6 +55,9 @@ EqualizerChannel d;
 struct EqualizerChannels* prev;
 struct EqualizerChannels* next;
 } EqualizerChannels;
+#if HAVE_WASAPI
+typedef struct WASAPIHandle WASAPIHandle;
+#endif
 typedef struct MusicHandle {
 /// Demux 用
 AVFormatContext* fmt;
@@ -125,6 +130,9 @@ int retry_count;
 int64_t last_pkt_pts;
 /// 当去filters链从buffer读入的数据量（仅复杂的filters链）
 int filters_buffer_offset;
+#if HAVE_WASAPI
+WASAPIHandle* wasapi;
+#endif
 /// SDL是否被初始化
 unsigned char sdl_initialized : 1;
 /// 让事件处理线程退出标志位
@@ -154,6 +162,12 @@ unsigned char is_reopen : 1;
 unsigned char is_easy_filters : 1;
 /// 刚初始化完复杂的filters，等待filters填充数据
 unsigned char is_wait_filters : 1;
+#if HAVE_WASAPI
+/// 当前handle是否使用WASAPI
+unsigned char is_use_wasapi : 1;
+/// WASAPI是否被初始化
+unsigned char wasapi_initialized : 1;
+#endif
 } MusicHandle;
 typedef struct MusicInfoHandle {
 AVFormatContext* fmt;
@@ -173,6 +187,12 @@ int max_retry_count;
 int url_retry_interval;
 /// 均衡器
 EqualizerChannels* equalizer_channels;
+#if HAVE_WASAPI
+/// 是否使用WASAPI
+unsigned char use_wasapi : 1;
+/// 是否启用独占模式
+unsigned char enable_exclusive : 1;
+#endif
 } FfmpegCoreSettings;
 #if __cplusplus
 }

@@ -1,13 +1,16 @@
 cmake_minimum_required(VERSION 3.0)
 
-project(MusicPlayer2_ffmpeg_core)
+project(ffmpeg_core)
 
 if (MSVC)
     add_compile_options(/utf-8)  # 让编译器使用UTF-8编码
 endif()
 
+option(ENABLE_WASAPI "Enable WASAPI support" ON)
+
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 include(GNUInstallDirs)
+include(CheckIncludeFiles)
 find_package(AVFORMAT 58 REQUIRED)
 find_package(AVCODEC 58 REQUIRED)
 find_package(AVDEVICE 58 REQUIRED)
@@ -50,7 +53,17 @@ src/equalizer.h
 src/equalizer.c
 "${CMAKE_CURRENT_BINARY_DIR}/ffmpeg_core.rc"
 "${CMAKE_CURRENT_BINARY_DIR}/ffmpeg_core_version.h"
+"${CMAKE_CURRENT_BINARY_DIR}/ffmpeg_core_config.h"
 )
+
+if (ENABLE_WASAPI)
+    CHECK_INCLUDE_FILES("audioclient.h;mmdeviceapi.h;Functiondiscoverykeys_devpkey.h" HAVE_WASAPI)
+endif()
+
+if (HAVE_WASAPI)
+    list(APPEND CORE_FILES src/wasapi.h src/wasapi.cpp)
+endif()
+configure_file("${CMAKE_CURRENT_SOURCE_DIR}/ffmpeg_core_config.h.in" "${CMAKE_CURRENT_BINARY_DIR}/ffmpeg_core_config.h")
 
 set_source_files_properties("${CMAKE_CURRENT_BINARY_DIR}/ffmpeg_core.rc" PROPERTIES GENERATED TRUE)
 set_source_files_properties("${CMAKE_CURRENT_BINARY_DIR}/ffmpeg_core_version.h" PROPERTIES GENERATED TRUE)
@@ -79,6 +92,9 @@ target_link_libraries(ffmpeg_core utils)
 
 if (NOT MSVC)
     target_link_libraries(ffmpeg_core m)
+    if (HAVE_WASAPI)
+        target_link_libraries(ffmpeg_core ksuser)
+    endif()
 endif()
 
 install(TARGETS ffmpeg_core)

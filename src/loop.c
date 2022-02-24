@@ -7,6 +7,9 @@
 #include "file.h"
 #include "cda.h"
 #include "open.h"
+#if HAVE_WASAPI
+#include "wasapi.h"
+#endif
 
 #define ft2ts(t) (((size_t)t.dwHighDateTime << 32) | (size_t)t.dwLowDateTime)
 
@@ -219,7 +222,15 @@ DWORD WINAPI event_loop(LPVOID handle) {
         } else {
             // 播放完毕，自动停止播放
             if (av_audio_fifo_size(h->buffer) == 0) {
+#if HAVE_WASAPI
+                if (h->is_use_wasapi) {
+                    play_WASAPI_device(h, 0);
+                } else {
+                    SDL_PauseAudioDevice(h->device_id, 1);
+                }
+#else
                 SDL_PauseAudioDevice(h->device_id, 1);
+#endif
                 h->is_playing = 0;
             }
         }

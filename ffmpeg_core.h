@@ -42,6 +42,14 @@ struct DeviceNameList* next;
 #define FFMPEG_CORE_ERR_NO_LIBCDIO 17
 #define FFMEPG_CORE_ERR_FAILED_PARSE_URL 18
 #define FFMPEG_CORE_ERR_FAILED_SET_EQUALIZER_CHANNEL 19
+#define FFMPEG_CORE_ERR_FAILED_INIT_WASAPI 20
+#define FFMEPG_CORE_ERR_FAILED_GET_WASAPI_DEVICE_PROP 21
+#define FFMPEG_CORE_ERR_WASAPI_NOT_INITED 22
+#define FFMPEG_CORE_ERR_WASAPI_DEVICE_NOT_FOUND 23
+#define FFMPEG_CORE_ERR_WASAPI_FAILED_OPEN_DEVICE 24
+#define FFMPEG_CORE_ERR_INVALID_DEVICE_NAME 25
+#define FFMPEG_CORE_ERR_WASAPI_NO_SUITABLE_FORMAT 26
+#define FFMPEG_CORE_ERR_FAILED_CREATE_EVENT 27
 FFMPEG_CORE_API void free_music_handle(MusicHandle* handle);
 FFMPEG_CORE_API void free_music_info_handle(MusicInfoHandle* handle);
 FFMPEG_CORE_API void free_ffmpeg_core_settings(FfmpegCoreSettings* s);
@@ -57,6 +65,7 @@ FFMPEG_CORE_API void ffmpeg_core_log_set_callback(void(*callback)(void*, int, co
 FFMPEG_CORE_API void ffmpeg_core_log_set_flags(int arg);
 FFMPEG_CORE_API const char* ffmpeg_core_version_str();
 FFMPEG_CORE_API int32_t ffmpeg_core_version();
+FFMPEG_CORE_API int ffmpeg_core_is_wasapi_supported();
 FFMPEG_CORE_API void ffmpeg_core_dump_library_version(int use_av_log, int av_log_level);
 FFMPEG_CORE_API void ffmpeg_core_dump_ffmpeg_configuration(int use_av_log, int av_log_level);
 FFMPEG_CORE_API int ffmpeg_core_open(const wchar_t* url, MusicHandle** handle);
@@ -151,6 +160,8 @@ FFMPEG_CORE_API int ffmpeg_core_settings_set_cache_length(FfmpegCoreSettings* s,
 FFMPEG_CORE_API int ffmpeg_core_settings_set_max_retry_count(FfmpegCoreSettings* s, int max_retry_count);
 FFMPEG_CORE_API int ffmpeg_core_settings_set_url_retry_interval(FfmpegCoreSettings* s, int url_retry_interval);
 FFMPEG_CORE_API int ffmpeg_core_settings_set_equalizer_channel(FfmpegCoreSettings* s, int channel, int gain);
+FFMPEG_CORE_API int ffmpeg_core_settings_set_use_WASAPI(FfmpegCoreSettings* s, int enable);
+FFMPEG_CORE_API int ffmpeg_core_settings_set_enable_exclusive(FfmpegCoreSettings* s, int enable);
 FFMPEG_CORE_API DeviceNameList* ffmpeg_core_get_audio_devices();
 #ifdef __cplusplus
 }
