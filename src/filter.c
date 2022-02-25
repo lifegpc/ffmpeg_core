@@ -7,6 +7,9 @@
 
 int need_filters(FfmpegCoreSettings* s) {
     if (!s) return 0;
+#if HAVE_WASAPI
+    if (s->enable_exclusive) return 0;
+#endif
     if (!avfilter_get_by_name("abuffersink") || !avfilter_get_by_name("abuffer")) {
         return 0;
     }

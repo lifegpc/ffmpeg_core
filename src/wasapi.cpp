@@ -296,7 +296,7 @@ int open_WASAPI_device(MusicHandle* handle, const wchar_t* name) {
         if ((re = check_format_supported(handle->wasapi->client, handle->s->enable_exclusive, &fmt, &target_fmt, i))) {
             goto end;
         }
-        if (target_fmt) {
+        if (target_fmt || handle->s->enable_exclusive) {
             break;
         }
     }
