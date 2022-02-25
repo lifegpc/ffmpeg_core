@@ -6,7 +6,7 @@ if (MSVC)
     add_compile_options(/utf-8)  # 让编译器使用UTF-8编码
 endif()
 
-option(ENABLE_WASAPI "Enable WASAPI support" ON)
+option(ENABLE_WASAPI "Enable WASAPI support" OFF)
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 include(GNUInstallDirs)
