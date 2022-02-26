@@ -310,9 +310,6 @@ int open_WASAPI_device(MusicHandle* handle, const wchar_t* name) {
         re = FFMPEG_CORE_ERR_WASAPI_FAILED_OPEN_DEVICE;
         goto end;
     }
-    if (handle->s->enable_exclusive && period < 50000) {
-        period = 50000;
-    }
     if (!SUCCEEDED(hr = handle->wasapi->client->Initialize(handle->s->enable_exclusive ? AUDCLNT_SHAREMODE_EXCLUSIVE : AUDCLNT_SHAREMODE_SHARED, AUDCLNT_SESSIONFLAGS_EXPIREWHENUNOWNED | AUDCLNT_SESSIONFLAGS_DISPLAY_HIDEWHENEXPIRED | AUDCLNT_STREAMFLAGS_EVENTCALLBACK, handle->s->enable_exclusive ? period : 0, period, target_fmt, nullptr)) && hr != AUDCLNT_E_BUFFER_SIZE_NOT_ALIGNED) {
         GET_WIN_ERROR(errmsg, hr);
         av_log(NULL, AV_LOG_FATAL, "Failed to initialize the audio client: %s (%lu).\n", errmsg.c_str(), hr);
@@ -608,9 +605,14 @@ DWORD WINAPI wasapi_loop(LPVOID handle) {
             uint32_t padding;
             uint8_t* data = nullptr;
             uint32_t count;
-            DEAL_WASAPI_LOOP_ERROR(hr = w->client->GetCurrentPadding(&padding));
-            count = min(w->frame_count - padding, h->sdl_spec.freq / 100);
-            DEAL_WASAPI_LOOP_ERROR(hr = w->render->GetBuffer(count, &data));
+            if (!h->s->enable_exclusive) {
+                DEAL_WASAPI_LOOP_ERROR(hr = w->client->GetCurrentPadding(&padding));
+                count = min(w->frame_count - padding, h->sdl_spec.freq / 100);
+                DEAL_WASAPI_LOOP_ERROR(hr = w->render->GetBuffer(count, &data));
+            } else {
+                DEAL_WASAPI_LOOP_ERROR(hr = w->client->GetBufferSize(&count));
+                DEAL_WASAPI_LOOP_ERROR(hr = w->render->GetBuffer(count, &data));
+            }
             SDL_callback((void*)handle, data, count * h->target_format_pbytes * h->sdl_spec.channels);
 end:
             if (data) {
