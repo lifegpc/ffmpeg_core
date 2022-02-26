@@ -19,6 +19,7 @@ find_package(AVFILTER 7 REQUIRED)
 find_package(SWRESAMPLE 4 REQUIRED)
 find_package(SDL2 REQUIRED)
 
+
 set(ENABLE_ICONV OFF CACHE BOOL "Libiconv is not needed.")
 add_subdirectory(utils)
 include_directories("${CMAKE_CURRENT_SOURCE_DIR}/utils")
