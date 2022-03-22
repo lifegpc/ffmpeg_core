@@ -4,7 +4,6 @@
 #include "core.h"
 extern "C" {
 #endif
-#include<avrt.h>
 #include <audioclient.h>
 #include <mmdeviceapi.h>
 typedef struct WASAPIDevice {
@@ -18,11 +17,9 @@ uint32_t frame_count;
 HANDLE thread;
 HRESULT err;
 HANDLE eve;
-HANDLE hTask;
 unsigned char is_playing : 1;
 unsigned char have_err : 1;
 unsigned char stoping : 1;
-
 } WASAPIHandle;
 void free_WASAPIHandle(WASAPIHandle* handle);
 int init_WASAPI();
