@@ -267,6 +267,12 @@ w->err = hr; \
 goto end; \
 }
 
+#define DEAL_WASAPI_LOOP_ERROR2(expr) if (!SUCCEEDED(expr)) { \
+w->have_err = 1; \
+w->err = hr; \
+goto end2; \
+}
+
 int open_WASAPI_device(MusicHandle* handle, const wchar_t* name) {
     if (!handle) return FFMPEG_CORE_ERR_NULLPTR;
     handle->wasapi = (WASAPIHandle*)malloc(sizeof(WASAPIHandle));
@@ -310,13 +316,11 @@ int open_WASAPI_device(MusicHandle* handle, const wchar_t* name) {
         re = FFMPEG_CORE_ERR_WASAPI_NO_SUITABLE_FORMAT;
         goto end;
     }
-    if (handle->s->enable_exclusive) {
-        if (!SUCCEEDED(handle->wasapi->client->GetDevicePeriod(&period, NULL))) {
-            GET_WIN_ERROR(errmsg, hr);
-                av_log(NULL, AV_LOG_FATAL, "Failed to get device's period: %s (%lu).\n", errmsg.c_str(), hr);
-                re = FFMPEG_CORE_ERR_WASAPI_FAILED_OPEN_DEVICE;
-                goto end;
-        }
+    if (!SUCCEEDED(handle->wasapi->client->GetDevicePeriod(&period, NULL))) {
+        GET_WIN_ERROR(errmsg, hr);
+        av_log(NULL, AV_LOG_FATAL, "Failed to get device's period: %s (%lu).\n", errmsg.c_str(), hr);
+        re = FFMPEG_CORE_ERR_WASAPI_FAILED_OPEN_DEVICE;
+        goto end;
     }
     //if (handle->s->enable_exclusive && !SUCCEEDED(handle->wasapi->client->GetDevicePeriod(&period, nullptr))) {
      //   GET_WIN_ERROR(errmsg, hr);
@@ -327,7 +331,7 @@ int open_WASAPI_device(MusicHandle* handle, const wchar_t* name) {
    // if (handle->s->enable_exclusive && period < 25000) {
        // period = 25000;
   //  }
-    if (!SUCCEEDED(hr = handle->wasapi->client->Initialize(handle->s->enable_exclusive ? AUDCLNT_SHAREMODE_EXCLUSIVE : AUDCLNT_SHAREMODE_SHARED, AUDCLNT_STREAMFLAGS_EVENTCALLBACK, period, handle->s->enable_exclusive ? period : 0, target_fmt, nullptr)) && hr != AUDCLNT_E_BUFFER_SIZE_NOT_ALIGNED) {
+    if (!SUCCEEDED(hr = handle->wasapi->client->Initialize(handle->s->enable_exclusive ? AUDCLNT_SHAREMODE_EXCLUSIVE : AUDCLNT_SHAREMODE_SHARED, handle->s->enable_exclusive ? NULL : AUDCLNT_STREAMFLAGS_EVENTCALLBACK , period , handle->s->enable_exclusive ? period : 0, target_fmt, nullptr)) && hr != AUDCLNT_E_BUFFER_SIZE_NOT_ALIGNED) {
         GET_WIN_ERROR(errmsg, hr);
         av_log(NULL, AV_LOG_FATAL, "Failed to initialize the audio client: %s (%lu).\n", errmsg.c_str(), hr);
         re = FFMPEG_CORE_ERR_WASAPI_FAILED_OPEN_DEVICE;
@@ -450,13 +454,15 @@ int open_WASAPI_device(MusicHandle* handle, const wchar_t* name) {
         re = FFMPEG_CORE_ERR_FAILED_CREATE_EVENT;
         goto end;
     }
-    if (!SUCCEEDED(hr = handle->wasapi->client->SetEventHandle(handle->wasapi->eve))) {
-        GET_WIN_ERROR(errmsg, hr);
-        av_log(NULL, AV_LOG_FATAL, "Failed to set event handle to audio client: %s (%lu).\n", errmsg.c_str(), hr);
-        re = FFMPEG_CORE_ERR_WASAPI_FAILED_OPEN_DEVICE;
-        goto end;
+    if (!handle->s->enable_exclusive) {
+        if (!SUCCEEDED(hr = handle->wasapi->client->SetEventHandle(handle->wasapi->eve))) {
+            GET_WIN_ERROR(errmsg, hr);
+            av_log(NULL, AV_LOG_FATAL, "Failed to set event handle to audio client: %s (%lu).\n", errmsg.c_str(), hr);
+            re = FFMPEG_CORE_ERR_WASAPI_FAILED_OPEN_DEVICE;
+            goto end;
+        }
     }
-   handle->wasapi->thread = CreateThread(nullptr, 0, wasapi_loop, handle, 0, nullptr);
+   handle->wasapi->thread = CreateThread(nullptr, 0, wasapi_loop3, handle, 0, nullptr);
    if (!handle->wasapi->thread) {
         re = FFMPEG_CORE_ERR_FAILED_CREATE_THREAD;
         goto end;
@@ -598,6 +604,135 @@ end:
     return re;
 }
 
+DWORD WINAPI wasapi_loop3(LPVOID handle) {
+    MusicHandle* h = (MusicHandle*)handle;
+    WASAPIHandle* w = h->wasapi;
+    HRESULT hr;
+    uint32_t padding;
+    uint8_t* data = nullptr;
+    uint32_t count;
+    uint32_t BufferMaxSize;
+    BOOL toDo = 0;
+    {
+        char buf[AV_TS_MAX_STRING_SIZE];
+        AVRational base = { 1, h->sdl_spec.freq };
+        av_ts_make_time_string(buf, w->frame_count, &base);
+        av_log(NULL, AV_LOG_VERBOSE, "WASAPI buffer length: %s\n", buf);
+    }
+    if (h->s->enable_exclusive) {
+        while (1) {
+            if (w->stoping) break;
+            DEAL_WASAPI_LOOP_ERROR(hr = w->client->GetBufferSize(&BufferMaxSize));
+            DEAL_WASAPI_LOOP_ERROR(hr = w->client->GetCurrentPadding(&padding));
+            if (padding < (BufferMaxSize / 2)) {
+                toDo = 1;
+            }
+            if (toDo) {
+                count = min(w->frame_count - padding, h->sdl_spec.freq / 100);
+                DEAL_WASAPI_LOOP_ERROR(hr = w->render->GetBuffer(count, &data));
+                SDL_callback((void*)handle, data, count * h->target_format_pbytes * h->sdl_spec.channels);
+            }
+            else
+            {
+                Sleep(1);
+            }
+        end:
+            if (data) {
+                DEAL_WASAPI_LOOP_ERROR(hr = w->client->GetCurrentPadding(&padding));
+                if (BufferMaxSize > 1024) {
+                    if (padding > (BufferMaxSize / 2)) {
+                        toDo = 0;
+                    }
+                }
+                if (!SUCCEEDED(hr = w->render->ReleaseBuffer(count, 0))) {
+                    w->have_err = 1;
+                    w->err = hr;
+                }
+            }
+        }
+    }
+    else {
+        while (1) {
+            if (w->stoping) break;
+            DWORD re = WaitForSingleObject(w->eve, 20);
+            if (re == WAIT_TIMEOUT) {
+                continue;
+            }
+            else if (re == WAIT_OBJECT_0) {
+                HRESULT hr;
+                uint32_t padding;
+                uint8_t* data = nullptr;
+                uint32_t count;
+                DEAL_WASAPI_LOOP_ERROR2(hr = w->client->GetCurrentPadding(&padding));
+                count = min(w->frame_count - padding, h->sdl_spec.freq / 100);
+                DEAL_WASAPI_LOOP_ERROR2(hr = w->render->GetBuffer(count, &data));
+                SDL_callback((void*)handle, data, count * h->target_format_pbytes * h->sdl_spec.channels);
+            end2:
+                if (data) {
+                    if (!SUCCEEDED(hr = w->render->ReleaseBuffer(count, 0))) {
+                        w->have_err = 1;
+                        w->err = hr;
+                    }
+                }
+            }
+            else {
+                return FFMPEG_CORE_ERR_WAIT_MUTEX_FAILED;
+            }
+        }
+    }
+    return FFMPEG_CORE_ERR_OK;
+}
+
+
+
+DWORD WINAPI wasapi_loop2(LPVOID handle) {
+    MusicHandle* h = (MusicHandle*)handle;
+    WASAPIHandle* w = h->wasapi;
+    HRESULT hr;
+    uint32_t padding;
+    uint8_t* data = nullptr;
+    uint32_t count;
+    uint32_t BufferMaxSize;
+    BOOL toDo = 0;
+    {
+        char buf[AV_TS_MAX_STRING_SIZE];
+        AVRational base = { 1, h->sdl_spec.freq };
+        av_ts_make_time_string(buf, w->frame_count, &base);
+        av_log(NULL, AV_LOG_VERBOSE, "WASAPI buffer length: %s\n", buf);
+    }
+    while (1) {
+        if (w->stoping) break;
+        DEAL_WASAPI_LOOP_ERROR(hr = w->client->GetBufferSize(&BufferMaxSize));
+        DEAL_WASAPI_LOOP_ERROR(hr = w->client->GetCurrentPadding(&padding));
+        if (padding < ( BufferMaxSize / 2)) {
+            toDo = 1;
+        }
+        if (toDo) {
+            count = min(w->frame_count - padding, h->sdl_spec.freq / 100);
+            DEAL_WASAPI_LOOP_ERROR(hr = w->render->GetBuffer(count, &data));
+            SDL_callback((void*)handle, data, count * h->target_format_pbytes * h->sdl_spec.channels);
+        }
+        else
+        {
+            Sleep(1);
+        }
+    end:
+        if (data) {
+            DEAL_WASAPI_LOOP_ERROR(hr = w->client->GetCurrentPadding(&padding));
+            if (BufferMaxSize > 1024) {
+                if (padding > (BufferMaxSize / 2)) {
+                    toDo = 0;
+                }
+            }
+            if (!SUCCEEDED(hr = w->render->ReleaseBuffer(count, 0))) {
+                w->have_err = 1;
+                w->err = hr;
+            }
+        }
+    }
+    return FFMPEG_CORE_ERR_OK;
+}
+
 
 DWORD WINAPI wasapi_loop(LPVOID handle) {
     MusicHandle* h = (MusicHandle*)handle;
@@ -626,6 +761,13 @@ DWORD WINAPI wasapi_loop(LPVOID handle) {
             }
             else {
                 DEAL_WASAPI_LOOP_ERROR(hr = w->client->GetBufferSize(&count));
+                if (!count) {
+                    if (!SUCCEEDED(hr = w->render->ReleaseBuffer(count, 0))) {
+                        w->have_err = 1;
+                        w->err = hr;
+                    }
+                    continue;
+                }
                 DEAL_WASAPI_LOOP_ERROR(hr = w->render->GetBuffer(count, &data));
                 SDL_callback((void*)handle, data, count * h->target_format_pbytes * h->sdl_spec.channels);
             }

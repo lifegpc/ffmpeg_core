@@ -85,7 +85,7 @@ SDL_AudioFormat convert_to_sdl_format(enum AVSampleFormat fmt) {
 
 void SDL_callback(void* userdata, uint8_t* stream, int len) {
     MusicHandle* handle = (MusicHandle*)userdata;
-    DWORD re = WaitForSingleObject(handle->mutex, 10);
+    DWORD re = WaitForSingleObject(handle->mutex, 5);
     if (re != WAIT_OBJECT_0) {
         // 无法获取Mutex所有权，填充空白数据
         memset(stream, 0, len);
