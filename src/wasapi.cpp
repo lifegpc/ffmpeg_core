@@ -80,14 +80,14 @@ int init_WASAPI() {
         return FFMPEG_CORE_ERR_OK;
     }
     int re = FFMPEG_CORE_ERR_OK;
-    HRESULT hr = NULL;
-    IMMDeviceEnumerator* enu = NULL;
-    IMMDeviceCollection* devicecol = NULL;
-    hr = CoInitializeEx(NULL, COINIT_MULTITHREADED);
-    if ( !SUCCEEDED(hr)) {
-    GET_WIN_ERROR(errmsg, hr);
-    av_log(NULL, AV_LOG_FATAL, " COM Aready Init: %s (%lu).\n", errmsg.c_str(), hr);
-    re = FFMPEG_CORE_ERR_FAILED_INIT_WASAPI;
+    HRESULT hr = S_OK;
+    IMMDeviceEnumerator* enu = nullptr;
+    IMMDeviceCollection* devicecol = nullptr;
+    if (!SUCCEEDED(hr = CoInitializeEx(NULL, COINIT_MULTITHREADED))) {
+        GET_WIN_ERROR(errmsg, hr);
+        av_log(NULL, AV_LOG_FATAL, "Failed to initilize COM enviornment: %s (%lu).\n", errmsg.c_str(), hr);
+        re = FFMPEG_CORE_ERR_FAILED_INIT_WASAPI;
+        goto end;
     }
     if (!SUCCEEDED(hr = CoCreateInstance(CLSID_MMDeviceEnumerator, nullptr, CLSCTX_ALL, IID_IMMDeviceEnumerator, (void**)&enu))) {
         GET_WIN_ERROR(errmsg, hr);
@@ -316,13 +316,13 @@ int open_WASAPI_device(MusicHandle* handle, const wchar_t* name) {
         re = FFMPEG_CORE_ERR_WASAPI_NO_SUITABLE_FORMAT;
         goto end;
     }
-    if (!SUCCEEDED(handle->wasapi->client->GetDevicePeriod(&period, NULL))) {
+    if (!SUCCEEDED(handle->wasapi->client->GetDevicePeriod(&period, nullptr))) {
         GET_WIN_ERROR(errmsg, hr);
         av_log(NULL, AV_LOG_FATAL, "Failed to get device's period: %s (%lu).\n", errmsg.c_str(), hr);
         re = FFMPEG_CORE_ERR_WASAPI_FAILED_OPEN_DEVICE;
         goto end;
     }
-    if (!SUCCEEDED(hr = handle->wasapi->client->Initialize(handle->s->enable_exclusive ? AUDCLNT_SHAREMODE_EXCLUSIVE : AUDCLNT_SHAREMODE_SHARED, handle->s->enable_exclusive ? NULL : AUDCLNT_STREAMFLAGS_EVENTCALLBACK , period , handle->s->enable_exclusive ? period : 0, target_fmt, nullptr)) && hr != AUDCLNT_E_BUFFER_SIZE_NOT_ALIGNED) {
+    if (!SUCCEEDED(hr = handle->wasapi->client->Initialize(handle->s->enable_exclusive ? AUDCLNT_SHAREMODE_EXCLUSIVE : AUDCLNT_SHAREMODE_SHARED, handle->s->enable_exclusive ? NULL : AUDCLNT_STREAMFLAGS_EVENTCALLBACK, period, handle->s->enable_exclusive ? period : 0, target_fmt, nullptr)) && hr != AUDCLNT_E_BUFFER_SIZE_NOT_ALIGNED) {
         GET_WIN_ERROR(errmsg, hr);
         av_log(NULL, AV_LOG_FATAL, "Failed to initialize the audio client: %s (%lu).\n", errmsg.c_str(), hr);
         re = FFMPEG_CORE_ERR_WASAPI_FAILED_OPEN_DEVICE;
@@ -453,11 +453,11 @@ int open_WASAPI_device(MusicHandle* handle, const wchar_t* name) {
             goto end;
         }
     }
-   handle->wasapi->thread = CreateThread(nullptr, 0, wasapi_loop3, handle, 0, nullptr);
-   if (!handle->wasapi->thread) {
+    handle->wasapi->thread = CreateThread(nullptr, 0, wasapi_loop3, handle, 0, nullptr);
+    if (!handle->wasapi->thread) {
         re = FFMPEG_CORE_ERR_FAILED_CREATE_THREAD;
         goto end;
-   }
+    }
 end:
     comfree(device);
     if (target_fmt) {
@@ -724,7 +724,6 @@ DWORD WINAPI wasapi_loop2(LPVOID handle) {
     return FFMPEG_CORE_ERR_OK;
 }
 
-
 DWORD WINAPI wasapi_loop(LPVOID handle) {
     MusicHandle* h = (MusicHandle*)handle;
     WASAPIHandle* w = h->wasapi;
@@ -736,7 +735,7 @@ DWORD WINAPI wasapi_loop(LPVOID handle) {
     }
     while (1) {
         if (w->stoping) break;
-        DWORD re = WaitForSingleObject(w->eve, 20);
+        DWORD re = WaitForSingleObject(w->eve, 10);
         if (re == WAIT_TIMEOUT) {
             continue;
         } else if (re == WAIT_OBJECT_0) {
@@ -770,6 +769,6 @@ end:
 void play_WASAPI_device(MusicHandle* handle, int play) {
     if (!handle || !handle->wasapi) return;
     handle->wasapi->is_playing = play ? 1 : 0;
-    if (handle->wasapi->is_playing)  handle->wasapi->client->Start();
+    if (handle->wasapi->is_playing) handle->wasapi->client->Start();
     else handle->wasapi->client->Stop();
 }
