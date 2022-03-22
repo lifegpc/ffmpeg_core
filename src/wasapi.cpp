@@ -748,20 +748,11 @@ DWORD WINAPI wasapi_loop(LPVOID handle) {
                 DEAL_WASAPI_LOOP_ERROR(hr = w->client->GetCurrentPadding(&padding));
                 count = min(w->frame_count - padding, h->sdl_spec.freq / 100);
                 DEAL_WASAPI_LOOP_ERROR(hr = w->render->GetBuffer(count, &data));
-                SDL_callback((void*)handle, data, count * h->target_format_pbytes * h->sdl_spec.channels);
-            }
-            else {
+            } else {
                 DEAL_WASAPI_LOOP_ERROR(hr = w->client->GetBufferSize(&count));
-                if (!count) {
-                    if (!SUCCEEDED(hr = w->render->ReleaseBuffer(count, 0))) {
-                        w->have_err = 1;
-                        w->err = hr;
-                    }
-                    continue;
-                }
                 DEAL_WASAPI_LOOP_ERROR(hr = w->render->GetBuffer(count, &data));
-                SDL_callback((void*)handle, data, count * h->target_format_pbytes * h->sdl_spec.channels);
             }
+            SDL_callback((void*)handle, data, count * h->target_format_pbytes * h->sdl_spec.channels);
 end:
             if (data) {
                 if (!SUCCEEDED(hr = w->render->ReleaseBuffer(count, 0))) {
