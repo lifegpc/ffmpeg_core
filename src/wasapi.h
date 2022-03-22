@@ -66,6 +66,7 @@ int get_format_info(AVCodecContext* context, WAVEFORMATEXTENSIBLE* format);
 */
 int check_format_supported(IAudioClient* client, int exclusive, WAVEFORMATEXTENSIBLE* base, WAVEFORMATEX** result, int change);
 int init_wasapi_output(MusicHandle* handle, const char* device);
+DWORD WINAPI wasapi_loop2(LPVOID handle);
 DWORD WINAPI wasapi_loop(LPVOID handle);
 void play_WASAPI_device(MusicHandle* handle, int play);
 #if __cplusplus
