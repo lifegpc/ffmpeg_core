@@ -596,7 +596,6 @@ DWORD WINAPI wasapi_loop2(LPVOID handle) {
     uint32_t padding;
     uint8_t* data = nullptr;
     uint32_t count;
-    uint32_t BufferMaxSize;
     BOOL toDo = 0;
     {
         char buf[AV_TS_MAX_STRING_SIZE];
@@ -606,13 +605,12 @@ DWORD WINAPI wasapi_loop2(LPVOID handle) {
     }
     while (1) {
         if (w->stoping) break;
-        DEAL_WASAPI_LOOP_ERROR(hr = w->client->GetBufferSize(&BufferMaxSize));
         DEAL_WASAPI_LOOP_ERROR(hr = w->client->GetCurrentPadding(&padding));
-        if (padding < ( BufferMaxSize / 2)) {
+        if (padding < w->frame_count / 2) {
             toDo = 1;
         }
         if (toDo) {
-            count = min(w->frame_count - padding, h->sdl_spec.freq / 100);
+            count = w->frame_count - padding;
             DEAL_WASAPI_LOOP_ERROR(hr = w->render->GetBuffer(count, &data));
             SDL_callback((void*)handle, data, count * h->target_format_pbytes * h->sdl_spec.channels);
         } else {
@@ -620,17 +618,13 @@ DWORD WINAPI wasapi_loop2(LPVOID handle) {
         }
     end:
         if (data) {
-            DEAL_WASAPI_LOOP_ERROR(hr = w->client->GetCurrentPadding(&padding));
-            if (BufferMaxSize > 1024) {
-                if (padding > (BufferMaxSize / 2)) {
-                    toDo = 0;
-                }
-            }
             if (!SUCCEEDED(hr = w->render->ReleaseBuffer(count, 0))) {
                 w->have_err = 1;
                 w->err = hr;
             }
         }
+        data = nullptr;
+        toDo = 0;
     }
     return FFMPEG_CORE_ERR_OK;
 }
