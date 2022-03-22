@@ -322,15 +322,6 @@ int open_WASAPI_device(MusicHandle* handle, const wchar_t* name) {
         re = FFMPEG_CORE_ERR_WASAPI_FAILED_OPEN_DEVICE;
         goto end;
     }
-    //if (handle->s->enable_exclusive && !SUCCEEDED(handle->wasapi->client->GetDevicePeriod(&period, nullptr))) {
-     //   GET_WIN_ERROR(errmsg, hr);
-       // av_log(NULL, AV_LOG_FATAL, "Failed to get device's period: %s (%lu).\n", errmsg.c_str(), hr);
-       // re = FFMPEG_CORE_ERR_WASAPI_FAILED_OPEN_DEVICE;
-      //  goto end;
-   // }
-   // if (handle->s->enable_exclusive && period < 25000) {
-       // period = 25000;
-  //  }
     if (!SUCCEEDED(hr = handle->wasapi->client->Initialize(handle->s->enable_exclusive ? AUDCLNT_SHAREMODE_EXCLUSIVE : AUDCLNT_SHAREMODE_SHARED, handle->s->enable_exclusive ? NULL : AUDCLNT_STREAMFLAGS_EVENTCALLBACK , period , handle->s->enable_exclusive ? period : 0, target_fmt, nullptr)) && hr != AUDCLNT_E_BUFFER_SIZE_NOT_ALIGNED) {
         GET_WIN_ERROR(errmsg, hr);
         av_log(NULL, AV_LOG_FATAL, "Failed to initialize the audio client: %s (%lu).\n", errmsg.c_str(), hr);
