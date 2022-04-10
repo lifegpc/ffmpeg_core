@@ -50,6 +50,8 @@ struct DeviceNameList* next;
 #define FFMPEG_CORE_ERR_INVALID_DEVICE_NAME 25
 #define FFMPEG_CORE_ERR_WASAPI_NO_SUITABLE_FORMAT 26
 #define FFMPEG_CORE_ERR_FAILED_CREATE_EVENT 27
+#define FFMPEG_CORE_ERR_TIMEOUT 28
+#define FFMPEG_CORE_ERR_WAIT_TIMEOUT 29
 FFMPEG_CORE_API void free_music_handle(MusicHandle* handle);
 FFMPEG_CORE_API void free_music_info_handle(MusicInfoHandle* handle);
 FFMPEG_CORE_API void free_ffmpeg_core_settings(FfmpegCoreSettings* s);
@@ -162,6 +164,7 @@ FFMPEG_CORE_API int ffmpeg_core_settings_set_url_retry_interval(FfmpegCoreSettin
 FFMPEG_CORE_API int ffmpeg_core_settings_set_equalizer_channel(FfmpegCoreSettings* s, int channel, int gain);
 FFMPEG_CORE_API int ffmpeg_core_settings_set_use_WASAPI(FfmpegCoreSettings* s, int enable);
 FFMPEG_CORE_API int ffmpeg_core_settings_set_enable_exclusive(FfmpegCoreSettings* s, int enable);
+FFMPEG_CORE_API int ffmpeg_core_settings_set_max_wait_time(FfmpegCoreSettings* s, int timeout);
 FFMPEG_CORE_API DeviceNameList* ffmpeg_core_get_audio_devices();
 #ifdef __cplusplus
 }

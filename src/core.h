@@ -192,6 +192,8 @@ EqualizerChannels* equalizer_channels;
 unsigned char use_wasapi : 1;
 /// 是否启用独占模式
 unsigned char enable_exclusive : 1;
+/// 最大等待时间（单位ms），seek等操作最长等待完成时间
+int max_wait_time;
 #endif
 } FfmpegCoreSettings;
 #if __cplusplus

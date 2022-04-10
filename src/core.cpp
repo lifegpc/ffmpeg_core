@@ -29,6 +29,8 @@
 #define min(a,b) (((a) < (b)) ? (a) : (b))
 #endif
 
+#define ft2ts(t) (((size_t)t.dwHighDateTime << 32) | (size_t)t.dwLowDateTime)
+
 template <typename T>
 void tfree(T* data) {
     free((void*)data);
@@ -444,13 +446,17 @@ int ffmpeg_core_info_get_freq(MusicInfoHandle* handle) {
 
 int ffmpeg_core_seek(MusicHandle* handle, int64_t time) {
     if (!handle) return FFMPEG_CORE_ERR_NULLPTR;
-    DWORD re = WaitForSingleObject(handle->mutex, INFINITE);
+    FILETIME st, et;
+    GetSystemTimePreciseAsFileTime(&st);
+    DWORD re = WaitForSingleObject(handle->mutex, handle->s->max_wait_time);
     if (re == WAIT_OBJECT_0) {
         handle->is_seek = 1;
         handle->seek_pos = time;
         if (handle->only_part) {
             handle->seek_pos += handle->part_start_pts;
         }
+    } else if (re == WAIT_TIMEOUT) {
+        return FFMPEG_CORE_ERR_TIMEOUT;
     } else {
         return FFMPEG_CORE_ERR_WAIT_MUTEX_FAILED;
     }
@@ -462,6 +468,8 @@ int ffmpeg_core_seek(MusicHandle* handle, int64_t time) {
     ReleaseMutex(handle->mutex);
     while (1) {
         if (!handle->is_seek) break;
+        GetSystemTimePreciseAsFileTime(&et);
+        if ((ft2ts(et) - ft2ts(st)) >= ((size_t)handle->s->max_wait_time * 10000)) return FFMPEG_CORE_ERR_WAIT_TIMEOUT;
         Sleep(10);
     }
     return handle->have_err ? handle->err : FFMPEG_CORE_ERR_OK;
@@ -558,9 +566,13 @@ wchar_t* ffmpeg_core_info_get_metadata(MusicInfoHandle* handle, const char* key)
 
 int send_reinit_filters(MusicHandle* handle) {
     if (!handle) return FFMPEG_CORE_ERR_NULLPTR;
-    DWORD re = WaitForSingleObject(handle->mutex, INFINITE);
+    FILETIME st, et;
+    GetSystemTimePreciseAsFileTime(&st);
+    DWORD re = WaitForSingleObject(handle->mutex, handle->s->max_wait_time);
     if (re == WAIT_OBJECT_0) {
         handle->need_reinit_filters = 1;
+    } else if (re == WAIT_TIMEOUT) {
+        return FFMPEG_CORE_ERR_TIMEOUT;
     } else {
         return FFMPEG_CORE_ERR_WAIT_MUTEX_FAILED;
     }
@@ -571,6 +583,8 @@ int send_reinit_filters(MusicHandle* handle) {
     handle->have_err = 0;
     ReleaseMutex(handle->mutex);
     while (handle->need_reinit_filters) {
+        GetSystemTimePreciseAsFileTime(&et);
+        if ((ft2ts(et) - ft2ts(st)) >= ((size_t)handle->s->max_wait_time * 10000)) return FFMPEG_CORE_ERR_WAIT_TIMEOUT;
         Sleep(10);
     }
     return handle->have_err ? handle->err : FFMPEG_CORE_ERR_OK;
@@ -585,6 +599,7 @@ FfmpegCoreSettings* ffmpeg_core_init_settings() {
     s->cache_length = 15;
     s->max_retry_count = 3;
     s->url_retry_interval = 5;
+    s->max_wait_time = 3000;
     return s;
 }
 
@@ -691,6 +706,10 @@ const wchar_t* ffmpeg_core_get_err_msg2(int err) {
             return L"Can not find suitable format for device.";
         case FFMPEG_CORE_ERR_FAILED_CREATE_EVENT:
             return L"Failed to create new event.";
+        case FFMPEG_CORE_ERR_TIMEOUT:
+            return L"Operation timeout.";
+        case FFMPEG_CORE_ERR_WAIT_TIMEOUT:
+            return L"The request is already send, but operation not completed.";
         default:
             return L"Unknown error.";
     }
@@ -813,4 +832,11 @@ int ffmpeg_core_settings_set_enable_exclusive(FfmpegCoreSettings* s, int enable)
 #else
     return enable ? 1 : 0;
 #endif
+}
+
+int ffmpeg_core_settings_set_max_wait_time(FfmpegCoreSettings* s, int timeout) {
+    if (!s) return 1;
+    if (timeout < 100 || timeout > 30000) return 1;
+    s->max_wait_time = timeout;
+    return 0;
 }
