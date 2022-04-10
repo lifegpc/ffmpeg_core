@@ -54,6 +54,8 @@ static int wasapi_init_count = 0;
 static IMMDevice* default_device = nullptr;
 /// 设备列表
 static struct LinkedList<WASAPIDevice*>* devices = nullptr;
+/// 是否COM 初始化
+static bool Com_init = false;
 
 void free_WASAPIHandle(WASAPIHandle* handle) {
     if (!handle) return;
@@ -83,14 +85,10 @@ int init_WASAPI() {
     HRESULT hr = S_OK;
     IMMDeviceEnumerator* enu = nullptr;
     IMMDeviceCollection* devicecol = nullptr;
-    bool first = true;
-retry:
     hr = CoInitializeEx(NULL, COINIT_MULTITHREADED);
-    if (hr == S_OK || hr == S_FALSE);
-    else if (hr == RPC_E_CHANGED_MODE && first) {
-        CoUninitialize();
-        first = false;
-        goto retry;
+    if (hr == S_OK || hr == S_FALSE) Com_init = true;
+    else if (hr == RPC_E_CHANGED_MODE) {
+        Com_init = false;
     } else {
         GET_WIN_ERROR(errmsg, hr);
         av_log(NULL, AV_LOG_FATAL, "Failed to initilize COM enviornment: %s (%lu).\n", errmsg.c_str(), hr);
@@ -161,7 +159,7 @@ void uninit_WASAPI() {
         wasapi_initialzed = false;
         comfree(default_device);
         linked_list_clear(devices, free_WASAPIDevice);
-        CoUninitialize();
+        if (Com_init) CoUninitialize();
     }
 }
 
