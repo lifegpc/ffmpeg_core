@@ -83,7 +83,15 @@ int init_WASAPI() {
     HRESULT hr = S_OK;
     IMMDeviceEnumerator* enu = nullptr;
     IMMDeviceCollection* devicecol = nullptr;
-    if (!SUCCEEDED(hr = CoInitializeEx(NULL, COINIT_MULTITHREADED))) {
+    bool first = true;
+retry:
+    hr = CoInitializeEx(NULL, COINIT_MULTITHREADED);
+    if (hr == S_OK || hr == S_FALSE);
+    else if (hr == RPC_E_CHANGED_MODE && first) {
+        CoUninitialize();
+        first = false;
+        goto retry;
+    } else {
         GET_WIN_ERROR(errmsg, hr);
         av_log(NULL, AV_LOG_FATAL, "Failed to initilize COM enviornment: %s (%lu).\n", errmsg.c_str(), hr);
         re = FFMPEG_CORE_ERR_FAILED_INIT_WASAPI;
@@ -153,6 +161,7 @@ void uninit_WASAPI() {
         wasapi_initialzed = false;
         comfree(default_device);
         linked_list_clear(devices, free_WASAPIDevice);
+        CoUninitialize();
     }
 }
 
