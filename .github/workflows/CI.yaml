@@ -54,5 +54,5 @@ jobs:
         ./build_ffmpeg_mingw-x64.sh || exit 1
     - name: Build FFMPEG Core
       run: |
-        cp scripts/build_ffmpeg_core_mingw-x64.sh -v ./ || exit 1
-        ./build_ffmpeg_core_mingw-x64.sh || exit 1
+        cp scripts/build_ffmpeg_core_mingw-x64-debug.sh -v ./ || exit 1
+        ./build_ffmpeg_core_mingw-x64-debug.sh || exit 1
