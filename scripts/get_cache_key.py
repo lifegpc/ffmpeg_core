@@ -5,8 +5,6 @@ import sys
 from time import time, strftime, gmtime
 from typing import List
 
-from scipy.fft import ifftn
-
 
 def sha256(data) -> str:
     if isinstance(data, str):
