@@ -30,7 +30,7 @@
 #define min(a,b) (((a) < (b)) ? (a) : (b))
 #endif
 
-#define ft2ts(t) (((size_t)t.dwHighDateTime << 32) | (size_t)t.dwLowDateTime)
+#define ft2ts(t) (((uint64_t)t.dwHighDateTime << 32) | (uint64_t)t.dwLowDateTime)
 
 template <typename T>
 void tfree(T* data) {
@@ -475,7 +475,7 @@ int ffmpeg_core_seek(MusicHandle* handle, int64_t time) {
     while (1) {
         if (!handle->is_seek) break;
         GetSystemTimePreciseAsFileTime(&et);
-        if ((ft2ts(et) - ft2ts(st)) >= ((size_t)handle->s->max_wait_time * 10000)) return FFMPEG_CORE_ERR_WAIT_TIMEOUT;
+        if ((ft2ts(et) - ft2ts(st)) >= ((uint64_t)handle->s->max_wait_time * 10000)) return FFMPEG_CORE_ERR_WAIT_TIMEOUT;
         Sleep(10);
     }
     return handle->have_err ? handle->err : FFMPEG_CORE_ERR_OK;
@@ -590,7 +590,7 @@ int send_reinit_filters(MusicHandle* handle) {
     ReleaseMutex(handle->mutex);
     while (handle->need_reinit_filters) {
         GetSystemTimePreciseAsFileTime(&et);
-        if ((ft2ts(et) - ft2ts(st)) >= ((size_t)handle->s->max_wait_time * 10000)) return FFMPEG_CORE_ERR_WAIT_TIMEOUT;
+        if ((ft2ts(et) - ft2ts(st)) >= ((uint64_t)handle->s->max_wait_time * 10000)) return FFMPEG_CORE_ERR_WAIT_TIMEOUT;
         Sleep(10);
     }
     return handle->have_err ? handle->err : FFMPEG_CORE_ERR_OK;

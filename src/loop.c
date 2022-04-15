@@ -11,7 +11,7 @@
 #include "wasapi.h"
 #endif
 
-#define ft2ts(t) (((size_t)t.dwHighDateTime << 32) | (size_t)t.dwLowDateTime)
+#define ft2ts(t) (((uint64_t)t.dwHighDateTime << 32) | (uint64_t)t.dwLowDateTime)
 
 int seek_to_pos(MusicHandle* handle) {
     if (!handle) return FFMPEG_CORE_ERR_NULLPTR;
@@ -81,7 +81,7 @@ int reopen_file(MusicHandle* handle) {
         GetSystemTimePreciseAsFileTime(&st);
         FILETIME now;
         memcpy(&now, &st, sizeof(FILETIME));
-        while ((ft2ts(now) - ft2ts(st)) < ((size_t)10000000 * handle->s->url_retry_interval)) {
+        while ((ft2ts(now) - ft2ts(st)) < ((uint64_t)10000000 * handle->s->url_retry_interval)) {
             doing = 0;
             if (handle->stoping) return FFMPEG_CORE_ERR_OK;
             if (basic_event_handle(handle)) {
