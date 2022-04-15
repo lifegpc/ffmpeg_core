@@ -163,7 +163,7 @@ p.add_argument('-a', '--add', action='append', help='Additional files to pack', 
 if __name__ == '__main__':
     try:
         args = p.parse_args()
-        main(args.PROG, args.output, args.add, args.pdb)
+        main(args.PROG[0], args.output, args.add, args.pdb)
     except Exception:
         from traceback import print_exc
         from sys import exit
