@@ -64,7 +64,7 @@ jobs:
     - name: Pack programs
       run: |
         export PATH=`pwd`/clib/bin:$PATH
-        python scripts/pack_prog.py -o mingw-x64-debug.7z %CD%/lib/bin/ffmpeg_core.dll || exit 1
+        python scripts/pack_prog.py -o mingw-x64-debug.7z `pwd`/lib/bin/ffmpeg_core.dll || exit 1
     - name: Upload files
       uses: actions/upload-artifact@v3
       with:
