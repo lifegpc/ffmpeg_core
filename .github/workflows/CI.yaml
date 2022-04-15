@@ -56,3 +56,18 @@ jobs:
       run: |
         cp scripts/build_ffmpeg_core_mingw-x64-debug.sh -v ./ || exit 1
         ./build_ffmpeg_core_mingw-x64-debug.sh || exit 1
+    - name: Download lld-rust
+      run: |
+        curl -L "https://github.com/lifegpc/ldd-rust/releases/download/v0.0.2/ldd-x86_64-msvc-v0.0.2.7z" -o ldd-x86_64-msvc-v0.0.2.7z || exit 1
+        7z e ldd-x86_64-msvc-v0.0.2.7z ldd.exe || exit 1
+        mv -v ldd.exe ldd-rust.exe || exit 1
+    - name: Pack programs
+      shell: cmd
+      run: |
+        set "PATH=%CD%/clib/bin;%PATH%"
+        python pack_prog.py -o mingw-x64-debug.7z %CD%/lib/bin/ffmpeg_core.dll || exit 1
+    - name: Upload files
+      uses: actions/upload-artifact@v3
+      with:
+        name: mingw-x64-debug
+        path: ./mingw-x64-debug.7z
