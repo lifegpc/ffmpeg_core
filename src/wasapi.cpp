@@ -488,7 +488,7 @@ void close_WASAPI_device(MusicHandle* handle) {
 
 #if NEW_CHANNEL_LAYOUT
 int32_t get_WASAPI_channel_mask(AVChannelLayout* channel_layout, int channels) {
-    if (channel_layout->nb_channels == 0 || channel_layout->order != AV_CHANNEL_ORDER_NATIVE) {
+    if (!channel_layout || channel_layout->nb_channels == 0 || channel_layout->order != AV_CHANNEL_ORDER_NATIVE) {
         AVChannelLayout tmp;
         zeromem(&tmp);
         av_channel_layout_default(&tmp, channels);
