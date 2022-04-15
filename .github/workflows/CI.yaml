@@ -62,9 +62,8 @@ jobs:
         7z e ldd-x86_64-msvc-v0.0.2.7z ldd.exe || exit 1
         mv -v ldd.exe ldd-rust.exe || exit 1
     - name: Pack programs
-      shell: cmd
       run: |
-        set "PATH=%CD%/clib/bin;%PATH%"
+        export PATH=`pwd`/clib/bin:$PATH
         python scripts/pack_prog.py -o mingw-x64-debug.7z %CD%/lib/bin/ffmpeg_core.dll || exit 1
     - name: Upload files
       uses: actions/upload-artifact@v3
