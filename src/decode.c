@@ -14,10 +14,14 @@ int open_decoder(MusicHandle* handle) {
         av_log(NULL, AV_LOG_FATAL, "Failed to copy parameters from input stream: %s (%i)\n", av_err2str(re), re);
         return re;
     }
+#if OLD_CHANNEL_LAYOUT || defined(FF_API_OLD_CHANNEL_LAYOUT)
+    DISABLE_DEPRECATION_WARNINGS
     if (handle->decoder->channel_layout == 0) {
         // 如果未设置，设置为默认值
         handle->decoder->channel_layout = av_get_default_channel_layout(handle->decoder->channels);
     }
+    ENABLE_DEPRECATION_WARNINGS
+#endif
     // 打开解码器
     if ((re = avcodec_open2(handle->decoder, handle->codec, NULL)) < 0) {
         av_log(NULL, AV_LOG_FATAL, "Failed to open decoder \"%s\": %s (%i)\n", handle->codec->name, av_err2str(re), re);
@@ -39,10 +43,14 @@ int reopen_decoder(MusicHandle* handle) {
         av_log(NULL, AV_LOG_FATAL, "Failed to copy parameters from input stream: %s (%i)\n", av_err2str(re), re);
         return re;
     }
+#if OLD_CHANNEL_LAYOUT || defined(FF_API_OLD_CHANNEL_LAYOUT)
+    DISABLE_DEPRECATION_WARNINGS
     if (handle->decoder->channel_layout == 0) {
         // 如果未设置，设置为默认值
         handle->decoder->channel_layout = av_get_default_channel_layout(handle->decoder->channels);
     }
+    ENABLE_DEPRECATION_WARNINGS
+#endif
     // 打开解码器
     if ((re = avcodec_open2(handle->decoder, handle->codec, NULL)) < 0) {
         av_log(NULL, AV_LOG_FATAL, "Failed to open decoder \"%s\": %s (%i)\n", handle->codec->name, av_err2str(re), re);

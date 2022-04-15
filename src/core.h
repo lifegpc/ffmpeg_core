@@ -34,6 +34,23 @@ extern "C" {
 
 #define FFT_SAMPLE 1024
 
+#if LIBAVCODEC_VERSION_MAJOR < 59 || LIBAVCODEC_VERSION_MINOR < 23 || LIBAVCODEC_VERSION_MICRO < 100
+#define OLD_CHANNEL_LAYOUT 1
+#else
+#define NEW_CHANNEL_LAYOUT 1
+#endif
+
+#if defined(__ICL) || defined (__INTEL_COMPILER)
+#define DISABLE_DEPRECATION_WARNINGS __pragma(warning(push)) __pragma(warning(disable:1478))
+#define ENABLE_DEPRECATION_WARNINGS  __pragma(warning(pop))
+#elif defined(_MSC_VER)
+#define DISABLE_DEPRECATION_WARNINGS __pragma(warning(push)) __pragma(warning(disable:4996))
+#define ENABLE_DEPRECATION_WARNINGS  __pragma(warning(pop))
+#else
+#define DISABLE_DEPRECATION_WARNINGS _Pragma("GCC diagnostic push") _Pragma("GCC diagnostic ignored \"-Wdeprecated-declarations\"")
+#define ENABLE_DEPRECATION_WARNINGS  _Pragma("GCC diagnostic pop")
+#endif
+
 typedef struct CDAData {
 /// version of the CD format. In May 2006, always equal to 1.
 uint16_t cd_format_version;
