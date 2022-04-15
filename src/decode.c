@@ -43,7 +43,7 @@ int reopen_decoder(MusicHandle* handle) {
         av_log(NULL, AV_LOG_FATAL, "Failed to copy parameters from input stream: %s (%i)\n", av_err2str(re), re);
         return re;
     }
-#if OLD_CHANNEL_LAYOUT || defined(FF_API_OLD_CHANNEL_LAYOUT)
+#if OLD_CHANNEL_LAYOUT || FF_API_OLD_CHANNEL_LAYOUT
     DISABLE_DEPRECATION_WARNINGS
     if (handle->decoder->channel_layout == 0) {
         // 如果未设置，设置为默认值

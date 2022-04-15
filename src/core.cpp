@@ -17,6 +17,7 @@
 #include "linked_list.h"
 #include "cstr_util.h"
 #include "ffmpeg_core_version.h"
+#include "ch_layout.h"
 
 #if HAVE_WASAPI
 #include "wasapi.h"
@@ -426,12 +427,12 @@ int64_t ffmpeg_core_info_get_song_length(MusicInfoHandle* handle) {
 
 int ffmpeg_core_get_channels(MusicHandle* handle) {
     if (!handle || !handle->decoder) return -1;
-    return handle->decoder->channels;
+    return GET_AV_CODEC_CHANNELS(handle->decoder);
 }
 
 int ffmpeg_core_info_get_channels(MusicInfoHandle* handle) {
     if (!handle || !handle->is) return -1;
-    return handle->is->codecpar->channels;
+    return GET_AV_CODEC_CHANNELS(handle->is->codecpar);
 }
 
 int ffmpeg_core_get_freq(MusicHandle* handle) {

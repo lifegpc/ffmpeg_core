@@ -51,6 +51,8 @@ src/equalizer_settings.h
 src/equalizer_settings.cpp
 src/equalizer.h
 src/equalizer.c
+src/ch_layout.h
+src/ch_layout.c
 "${CMAKE_CURRENT_BINARY_DIR}/ffmpeg_core.rc"
 "${CMAKE_CURRENT_BINARY_DIR}/ffmpeg_core_version.h"
 "${CMAKE_CURRENT_BINARY_DIR}/ffmpeg_core_config.h"
