@@ -143,3 +143,145 @@ jobs:
       with:
         name: mingw-x64-wasapi-debug
         path: ./mingw-x64-wasapi-debug.7z
+  mingw-x64-release:
+    runs-on: windows-2019
+    defaults:
+      run:
+        shell: msys2 {0}
+    steps:
+    - name: Check Out
+      uses: actions/checkout@v2
+      with:
+        fetch-depth: 0
+        submodules: true
+    - name: Setup MSYS2
+      uses: msys2/setup-msys2@v2
+      with:
+        msystem: MINGW64
+        update: true
+        install: >-
+          base-devel
+          git
+          p7zip
+          mingw64/mingw-w64-x86_64-bzip2
+          mingw64/mingw-w64-x86_64-cmake
+          mingw64/mingw-w64-x86_64-gcc
+          mingw64/mingw-w64-x86_64-diffutils
+          mingw64/mingw-w64-x86_64-nasm
+          mingw64/mingw-w64-x86_64-pkg-config
+          mingw64/mingw-w64-x86_64-zlib
+          mingw64/mingw-w64-x86_64-libcdio-paranoia
+          mingw64/mingw-w64-x86_64-gnutls
+    - name: Get Cache Key
+      id: cache_key
+      shell: cmd
+      run: |
+        cd scripts
+        python get_cache_key.py mingw-x64 SDL2 ffmpeg || exit 1
+    - name: Cache
+      id: cache
+      uses: actions/cache@v2
+      with:
+        path: clib/
+        key: mingw-x64-release-${{ steps.cache_key.outputs.cache_key }}
+    - name: Build SDL2
+      if: steps.cache.outputs.cache-hit != 'true'
+      run: |
+        cp scripts/build_SDL2_mingw-x64.sh -v ./ || exit 1
+        ./build_SDL2_mingw-x64.sh || exit 1
+    - name: Build FFMPEG
+      if: steps.cache.outputs.cache-hit != 'true'
+      run: |
+        cp scripts/build_ffmpeg_mingw-x64.sh -v ./ || exit 1
+        ./build_ffmpeg_mingw-x64.sh || exit 1
+    - name: Build FFMPEG Core
+      run: |
+        cp scripts/build_ffmpeg_core_mingw-x64-release.sh -v ./ || exit 1
+        ./build_ffmpeg_core_mingw-x64-release.sh || exit 1
+    - name: Download lld-rust
+      run: |
+        curl -L "https://github.com/lifegpc/ldd-rust/releases/download/v0.0.2/ldd-x86_64-msvc-v0.0.2.7z" -o ldd-x86_64-msvc-v0.0.2.7z || exit 1
+        7z e ldd-x86_64-msvc-v0.0.2.7z ldd.exe || exit 1
+        mv -v ldd.exe ldd-rust.exe || exit 1
+    - name: Pack programs
+      env: 
+        MSYS2_PATH_TYPE: inherit
+      run: |
+        export PATH=`pwd`/clib/bin:$PATH
+        python scripts/pack_prog.py -s -o mingw-x64-release.7z `pwd`/lib/bin/ffmpeg_core.dll || exit 1
+    - name: Upload files
+      uses: actions/upload-artifact@v3
+      with:
+        name: mingw-x64-release
+        path: ./mingw-x64-release.7z
+  mingw-x64-wasapi-release:
+    runs-on: windows-2019
+    defaults:
+      run:
+        shell: msys2 {0}
+    steps:
+    - name: Check Out
+      uses: actions/checkout@v2
+      with:
+        fetch-depth: 0
+        submodules: true
+    - name: Setup MSYS2
+      uses: msys2/setup-msys2@v2
+      with:
+        msystem: MINGW64
+        update: true
+        install: >-
+          base-devel
+          git
+          p7zip
+          mingw64/mingw-w64-x86_64-bzip2
+          mingw64/mingw-w64-x86_64-cmake
+          mingw64/mingw-w64-x86_64-gcc
+          mingw64/mingw-w64-x86_64-diffutils
+          mingw64/mingw-w64-x86_64-nasm
+          mingw64/mingw-w64-x86_64-pkg-config
+          mingw64/mingw-w64-x86_64-zlib
+          mingw64/mingw-w64-x86_64-libcdio-paranoia
+          mingw64/mingw-w64-x86_64-gnutls
+    - name: Get Cache Key
+      id: cache_key
+      shell: cmd
+      run: |
+        cd scripts
+        python get_cache_key.py mingw-x64 SDL2 ffmpeg || exit 1
+    - name: Cache
+      id: cache
+      uses: actions/cache@v2
+      with:
+        path: clib/
+        key: mingw-x64-wasapi-release-${{ steps.cache_key.outputs.cache_key }}
+    - name: Build SDL2
+      if: steps.cache.outputs.cache-hit != 'true'
+      run: |
+        cp scripts/build_SDL2_mingw-x64.sh -v ./ || exit 1
+        ./build_SDL2_mingw-x64.sh || exit 1
+    - name: Build FFMPEG
+      if: steps.cache.outputs.cache-hit != 'true'
+      run: |
+        cp scripts/build_ffmpeg_mingw-x64.sh -v ./ || exit 1
+        ./build_ffmpeg_mingw-x64.sh || exit 1
+    - name: Build FFMPEG Core
+      run: |
+        cp scripts/build_ffmpeg_core_mingw-x64-wasapi-release.sh -v ./ || exit 1
+        ./build_ffmpeg_core_mingw-x64-wasapi-release.sh || exit 1
+    - name: Download lld-rust
+      run: |
+        curl -L "https://github.com/lifegpc/ldd-rust/releases/download/v0.0.2/ldd-x86_64-msvc-v0.0.2.7z" -o ldd-x86_64-msvc-v0.0.2.7z || exit 1
+        7z e ldd-x86_64-msvc-v0.0.2.7z ldd.exe || exit 1
+        mv -v ldd.exe ldd-rust.exe || exit 1
+    - name: Pack programs
+      env: 
+        MSYS2_PATH_TYPE: inherit
+      run: |
+        export PATH=`pwd`/clib/bin:$PATH
+        python scripts/pack_prog.py -s -o mingw-x64-wasapi-release.7z `pwd`/lib/bin/ffmpeg_core.dll || exit 1
+    - name: Upload files
+      uses: actions/upload-artifact@v3
+      with:
+        name: mingw-x64-wasapi-release
+        path: ./mingw-x64-wasapi-release.7z
