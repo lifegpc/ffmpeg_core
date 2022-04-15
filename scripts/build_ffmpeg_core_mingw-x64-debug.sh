@@ -1,6 +1,6 @@
 export PREFIX=`pwd`/clib
 export INSTALL_PREFIX=`pwd`/lib
-export PKG_CONFIG_PATH=$PREFIX:$PKG_CONFIG_PATH
+export PKG_CONFIG_PATH=$PREFIX/lib/pkgconfig:$PKG_CONFIG_PATH
 mkdir -p build && cd build || exit 1
 cmake \
     -G "MSYS Makefiles" \
