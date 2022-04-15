@@ -62,6 +62,8 @@ jobs:
         7z e ldd-x86_64-msvc-v0.0.2.7z ldd.exe || exit 1
         mv -v ldd.exe ldd-rust.exe || exit 1
     - name: Pack programs
+      env: 
+        MSYS2_PATH_TYPE: inherit
       run: |
         export PATH=`pwd`/clib/bin:$PATH
         python scripts/pack_prog.py -o mingw-x64-debug.7z `pwd`/lib/bin/ffmpeg_core.dll || exit 1
