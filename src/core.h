@@ -135,8 +135,13 @@ AVFilterContext* filter_out;
 c_linked_list* filters;
 /// CDA 文件信息
 CDAData* cda;
+#if OLD_CHANNEL_LAYOUT
 /// 输出时的声道布局
 uint64_t output_channel_layout;
+#else
+/// 输出时的声道布局
+AVChannelLayout output_channel_layout;
+#endif
 /// 播放地址
 char* url;
 /// 解析后的播放地址

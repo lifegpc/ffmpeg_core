@@ -12,6 +12,7 @@
 #include "linked_list.h"
 #include "output.h"
 #include "wchar_util.h"
+#include "ch_layout.h"
 
 #define GET_WIN_ERROR(errmsg, hr) std::string errmsg; \
 if (!err::get_winerror(errmsg, hr)) errmsg = "(null)"; \
@@ -364,10 +365,20 @@ int open_WASAPI_device(MusicHandle* handle, const wchar_t* name) {
     handle->sdl_spec.channels = target_fmt->nChannels;
     if (target_fmt->wFormatTag == WAVE_FORMAT_EXTENSIBLE) {
         WAVEFORMATEXTENSIBLE* tmp = (WAVEFORMATEXTENSIBLE*)target_fmt;
-        if (tmp->dwChannelMask && av_get_channel_layout_nb_channels(tmp->dwChannelMask) == target_fmt->nChannels) {
+        if (tmp->dwChannelMask && get_channel_layout_channels(tmp->dwChannelMask) == target_fmt->nChannels) {
+#if NEW_CHANNEL_LAYOUT
+            if (re = av_channel_layout_from_mask(&handle->output_channel_layout, tmp->dwChannelMask)) {
+                goto end;
+            }
+#else
             handle->output_channel_layout = tmp->dwChannelMask;
+#endif
         } else {
+#if NEW_CHANNEL_LAYOUT
+            av_channel_layout_default(&handle->output_channel_layout, target_fmt->nChannels);
+#else
             handle->output_channel_layout = av_get_default_channel_layout(target_fmt->nChannels);
+#endif
         }
         if (tmp->SubFormat == KSDATAFORMAT_SUBTYPE_PCM) {
 #define RETURN_DATA(s) handle->target_format = s; break;
@@ -401,7 +412,11 @@ int open_WASAPI_device(MusicHandle* handle, const wchar_t* name) {
             goto end;
         }
     } else {
+#if NEW_CHANNEL_LAYOUT
+        av_channel_layout_default(&handle->output_channel_layout, target_fmt->nChannels);
+#else
         handle->output_channel_layout = av_get_default_channel_layout(target_fmt->nChannels);
+#endif
         if (target_fmt->wFormatTag == WAVE_FORMAT_PCM) {
 #define RETURN_DATA(s) handle->target_format = s; break;
             switch (target_fmt->wBitsPerSample) {
@@ -471,10 +486,26 @@ void close_WASAPI_device(MusicHandle* handle) {
     handle->wasapi = nullptr;
 }
 
+#if NEW_CHANNEL_LAYOUT
+int32_t get_WASAPI_channel_mask(AVChannelLayout* channel_layout, int channels) {
+    if (channel_layout->nb_channels == 0 || channel_layout->order != AV_CHANNEL_ORDER_NATIVE) {
+        AVChannelLayout tmp;
+        zeromem(&tmp);
+        av_channel_layout_default(&tmp, channels);
+        int32_t re = tmp.u.mask & (int32_t)0xffffffff;
+        av_channel_layout_uninit(&tmp);
+        return re;
+    }
+    return channel_layout->u.mask & (int32_t)0xffffffff;
+}
+#endif
+
+#if OLD_CHANNEL_LAYOUT
 int32_t get_WASAPI_channel_mask(int64_t channel_layout, int channels) {
     if (channel_layout == 0) channel_layout = av_get_default_channel_layout(channels);
     return channel_layout & (int32_t)0xffffffff;
 }
+#endif
 
 int format_is_pcm(enum AVSampleFormat fmt) {
     switch (fmt) {
@@ -496,14 +527,18 @@ int get_format_info(AVCodecContext* context, WAVEFORMATEXTENSIBLE* format) {
     if (!context || !format) return FFMPEG_CORE_ERR_NULLPTR;
     format->Format.wFormatTag = WAVE_FORMAT_EXTENSIBLE;
     AVSampleFormat fmt = convert_to_sdl_supported_format(context->sample_fmt);
-    format->Format.nChannels = context->channels;
+    format->Format.nChannels = GET_AV_CODEC_CHANNELS(context);
     format->Format.nSamplesPerSec = context->sample_rate;
     format->Format.wBitsPerSample = av_get_bytes_per_sample(fmt) * 8;
-    format->Format.nBlockAlign = format->Format.wBitsPerSample * context->channels / 8;
+    format->Format.nBlockAlign = format->Format.wBitsPerSample * GET_AV_CODEC_CHANNELS(context) / 8;
     format->Format.nAvgBytesPerSec = format->Format.nBlockAlign * context->sample_rate;
     format->Format.cbSize = 22;
     format->Samples.wValidBitsPerSample = format->Format.wBitsPerSample;
+#if NEW_CHANNEL_LAYOUT
+    format->dwChannelMask = get_WASAPI_channel_mask(&context->ch_layout, context->ch_layout.nb_channels);
+#else
     format->dwChannelMask = get_WASAPI_channel_mask(context->channel_layout, context->channels);
+#endif
     format->SubFormat = format_is_pcm(fmt) ? KSDATAFORMAT_SUBTYPE_PCM : KSDATAFORMAT_SUBTYPE_IEEE_FLOAT;
     return FFMPEG_CORE_ERR_OK;
 }
@@ -572,7 +607,13 @@ int init_wasapi_output(MusicHandle* handle, const char* device) {
     if ((re = open_WASAPI_device(handle, tmp.empty() ? nullptr : tmp.c_str()))) {
         goto end;
     }
+#if NEW_CHANNEL_LAYOUT
+    if ((re = swr_alloc_set_opts2(&handle->swrac, &handle->output_channel_layout, handle->target_format, handle->sdl_spec.freq, &handle->decoder->ch_layout, handle->decoder->sample_fmt, handle->decoder->sample_rate, 0, NULL))) {
+        goto end;
+    }
+#else
     handle->swrac = swr_alloc_set_opts(NULL, handle->output_channel_layout, handle->target_format, handle->sdl_spec.freq, handle->decoder->channel_layout, handle->decoder->sample_fmt, handle->decoder->sample_rate, 0, NULL);
+#endif
     if (!handle->swrac) {
         av_log(NULL, AV_LOG_FATAL, "Failed to allocate resample context.\n");
         re = FFMPEG_CORE_ERR_OOM;

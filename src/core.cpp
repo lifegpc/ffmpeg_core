@@ -79,6 +79,11 @@ void free_music_handle(MusicHandle* handle) {
     if (handle->sdl_initialized) {
         SDL_QuitSubSystem(SDL_INIT_AUDIO);
     }
+#if NEW_CHANNEL_LAYOUT
+    if (handle->output_channel_layout.nb_channels != 0) {
+        av_channel_layout_uninit(&handle->output_channel_layout);
+    }
+#endif
 #if HAVE_WASAPI
     if (handle->wasapi_initialized) {
         uninit_WASAPI();

@@ -2,6 +2,7 @@
 
 #include <math.h>
 #include "libavcodec/avfft.h"
+#include "ch_layout.h"
 
 int ffmpeg_core_get_fft_data(MusicHandle* handle, float* fft_data, int len) {
     if (!handle || !fft_data) return FFMPEG_CORE_ERR_NULLPTR;
@@ -21,8 +22,15 @@ int ffmpeg_core_get_fft_data(MusicHandle* handle, float* fft_data, int len) {
     }
     f->format = handle->target_format;
     f->nb_samples = total_samples;
+#if NEW_CHANNEL_LAYOUT
+    if ((r = av_channel_layout_copy(&f->ch_layout, &handle->output_channel_layout))) {
+        memset(fft_data, 0, sizeof(float) * len);
+        goto end;
+    }
+#else
     f->channel_layout = handle->output_channel_layout;
     f->channels = handle->sdl_spec.channels;
+#endif
     if ((r = av_frame_get_buffer(f, 0)) < 0) {
         memset(fft_data, 0, sizeof(float) * len);
         goto end;
@@ -55,12 +63,24 @@ int ffmpeg_core_get_fft_data(MusicHandle* handle, float* fft_data, int len) {
         memset(fft_data, 0, sizeof(float) * len);
         goto end;
     }
-    if (f->format == AV_SAMPLE_FMT_FLT && f->channels == 1) {
+    if (f->format == AV_SAMPLE_FMT_FLT && GET_AV_CODEC_CHANNELS(f) == 1) {
         for (int j = 0; j < 10; j++) {
             av_rdft_calc(context, (FFTSample*)f->data[0] + (size_t)FFT_SAMPLE * j);
         }
     } else {
+#if NEW_CHANNEL_LAYOUT
+        AVChannelLayout tmp;
+        memset(&tmp, 0, sizeof(AVChannelLayout));
+        av_channel_layout_default(&tmp, 1);
+        if ((r = swr_alloc_set_opts2(&swr, &tmp, AV_SAMPLE_FMT_FLT, handle->sdl_spec.freq, &handle->output_channel_layout, handle->target_format, handle->sdl_spec.freq, 0, NULL))) {
+            av_channel_layout_uninit(&tmp);
+            memset(fft_data, 0, sizeof(float) * len);
+            goto end;
+        }
+        av_channel_layout_uninit(&tmp);
+#else
         swr = swr_alloc_set_opts(NULL, av_get_default_channel_layout(1), AV_SAMPLE_FMT_FLT, handle->sdl_spec.freq, handle->output_channel_layout, handle->target_format, handle->sdl_spec.freq, 0, NULL);
+#endif
         if (!swr) {
             r = FFMPEG_CORE_ERR_OOM;
             memset(fft_data, 0, sizeof(float) * len);
@@ -77,8 +97,12 @@ int ffmpeg_core_get_fft_data(MusicHandle* handle, float* fft_data, int len) {
             goto end;
         }
         f2->format = AV_SAMPLE_FMT_FLT;
+#if NEW_CHANNEL_LAYOUT
+        av_channel_layout_default(&f2->ch_layout, 1);
+#else
         f2->channels = 1;
         f2->channel_layout = av_get_default_channel_layout(1);
+#endif
         f2->nb_samples = total_samples;
         if ((r = av_frame_get_buffer(f2, 0)) < 0) {
             memset(fft_data, 0, sizeof(float) * len);

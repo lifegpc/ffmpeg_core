@@ -1,6 +1,7 @@
 #include "output.h"
 
 #include "speed.h"
+#include "ch_layout.h"
 
 int init_output(MusicHandle* handle, const char* device) {
     if (!handle) return FFMPEG_CORE_ERR_NULLPTR;
@@ -18,7 +19,7 @@ int init_output(MusicHandle* handle, const char* device) {
         av_log(NULL, AV_LOG_FATAL, "Unknown sample format: %s (%i)\n", tmp ? tmp : "", handle->decoder->sample_fmt);
         return FFMPEG_CORE_ERR_UNKNOWN_SAMPLE_FMT;
     }
-    sdl_spec.channels = handle->decoder->channels;
+    sdl_spec.channels = GET_AV_CODEC_CHANNELS(handle->decoder);
     sdl_spec.samples = handle->decoder->sample_rate / 100;
     sdl_spec.callback = SDL_callback;
     sdl_spec.userdata = handle;
@@ -29,17 +30,26 @@ int init_output(MusicHandle* handle, const char* device) {
         return FFMPEG_CORE_ERR_SDL;
     }
     enum AVSampleFormat target_format = convert_to_sdl_supported_format(handle->decoder->sample_fmt);
+    int re = 0;
+#if NEW_CHANNEL_LAYOUT
+    if (re = get_sdl_channel_layout(handle->decoder->ch_layout.nb_channels, &handle->output_channel_layout)) {
+        return re;
+    }
+    if (re = swr_alloc_set_opts2(&handle->swrac, &handle->output_channel_layout, target_format, handle->sdl_spec.freq, &handle->decoder->ch_layout, handle->decoder->sample_fmt, handle->decoder->sample_rate, 0, NULL)) {
+        return re;
+    }
+#else
     handle->output_channel_layout = get_sdl_channel_layout(handle->decoder->channels);
     handle->swrac = swr_alloc_set_opts(NULL, handle->output_channel_layout, target_format, handle->sdl_spec.freq, handle->decoder->channel_layout, handle->decoder->sample_fmt, handle->decoder->sample_rate, 0, NULL);
+#endif
     if (!handle->swrac) {
         av_log(NULL, AV_LOG_FATAL, "Failed to allocate resample context.\n");
         return FFMPEG_CORE_ERR_OOM;
     }
-    int re = 0;
     if ((re = swr_init(handle->swrac)) < 0) {
         return re;
     }
-    if (!(handle->buffer = av_audio_fifo_alloc(target_format, handle->decoder->channels, 1))) {
+    if (!(handle->buffer = av_audio_fifo_alloc(target_format, GET_AV_CODEC_CHANNELS(handle->decoder), 1))) {
         av_log(NULL, AV_LOG_FATAL, "Failed to allocate buffer.\n");
         return FFMPEG_CORE_ERR_OOM;
     }
@@ -119,8 +129,15 @@ void SDL_callback(void* userdata, uint8_t* stream, int len) {
             goto end;
         }
         samples_need_in = samples_need * get_speed(handle->s->speed) / 1000;
+#if NEW_CHANNEL_LAYOUT
+        if (av_channel_layout_copy(&in->ch_layout, &handle->output_channel_layout) < 0) {
+            memset(stream, 0, len);
+            goto end;
+        }
+#else
         in->channels = handle->sdl_spec.channels;
         in->channel_layout = handle->output_channel_layout;
+#endif
         in->format = handle->target_format;
         in->sample_rate = handle->sdl_spec.freq;
         in->nb_samples = samples_need_in;
@@ -184,6 +201,32 @@ end:
     ReleaseMutex(handle->mutex);
 }
 
+#if NEW_CHANNEL_LAYOUT
+int get_sdl_channel_layout(int channels, AVChannelLayout* channel_layout) {
+    if (!channel_layout) return FFMPEG_CORE_ERR_NULLPTR;
+    switch (channels) {
+        case 2:
+            return av_channel_layout_from_string(channel_layout, "FL+FR");
+        case 3:
+            return av_channel_layout_from_string(channel_layout, "FL+FR+LFE");
+        case 4:
+            return av_channel_layout_from_string(channel_layout, "FL+FR+BL+BR");
+        case 5:
+            return av_channel_layout_from_string(channel_layout, "FL+FR+FC+BL+BR");
+        case 6:
+            return av_channel_layout_from_string(channel_layout, "FL+FR+FC+LFE+SL+SR");
+        case 7:
+            return av_channel_layout_from_string(channel_layout, "FL+FR+FC+LFE+BC+SL+SR");
+        case 8:
+            return av_channel_layout_from_string(channel_layout, "FL+FR+FC+LFE+BL+BR+SL+SR");
+        default:
+            av_channel_layout_default(channel_layout, channels);
+            return FFMPEG_CORE_ERR_OK;
+    }
+}
+#endif
+
+#if OLD_CHANNEL_LAYOUT
 uint64_t get_sdl_channel_layout(int channels) {
     switch (channels) {
         case 2:
@@ -204,3 +247,4 @@ uint64_t get_sdl_channel_layout(int channels) {
             return av_get_default_channel_layout(channels);
     }
 }
+#endif

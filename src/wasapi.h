@@ -48,7 +48,11 @@ int get_Device(const wchar_t* name, IMMDevice** result);
 */
 int open_WASAPI_device(MusicHandle* handle, const wchar_t* name);
 void close_WASAPI_device(MusicHandle* handle);
+#if NEW_CHANNEL_LAYOUT
+int32_t get_WASAPI_channel_mask(AVChannelLayout* channel_layout, int channels);
+#else
 int32_t get_WASAPI_channel_mask(int64_t channel_layout, int channels);
+#endif
 int format_is_pcm(enum AVSampleFormat fmt);
 int get_format_info(AVCodecContext* context, WAVEFORMATEXTENSIBLE* format);
 #define WASAPI_FORMAT_CHANGE_BITS 1
