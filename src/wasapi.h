@@ -73,6 +73,13 @@ int init_wasapi_output(MusicHandle* handle, const char* device);
 DWORD WINAPI wasapi_loop2(LPVOID handle);
 DWORD WINAPI wasapi_loop(LPVOID handle);
 void play_WASAPI_device(MusicHandle* handle, int play);
+/**
+ * @brief 获取独占模式缓冲区大小
+ * @param min_device_preiord 最小设备时间（单位：100ns）
+ * @param min_buffer_time 最小缓冲区时间（单位：ms）
+ * @return 缓冲区长度（单位：100ns）
+*/
+REFERENCE_TIME get_WASAPI_buffer_time(REFERENCE_TIME min_device_preiord, int min_buffer_time);
 #if __cplusplus
 }
 #endif

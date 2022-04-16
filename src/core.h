@@ -217,6 +217,10 @@ unsigned char enable_exclusive : 1;
 #endif
 /// 最大等待时间（单位ms），seek等操作最长等待完成时间
 int max_wait_time;
+#if HAVE_WASAPI
+/// WASAPI 独占模式最小缓冲区大小（单位：ms）
+int wasapi_min_buffer_time;
+#endif
 } FfmpegCoreSettings;
 #if __cplusplus
 }

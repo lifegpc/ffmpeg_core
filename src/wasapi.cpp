@@ -280,6 +280,7 @@ int open_WASAPI_device(MusicHandle* handle, const wchar_t* name) {
     WAVEFORMATEXTENSIBLE fmt;
     WAVEFORMATEX* target_fmt = nullptr;
     REFERENCE_TIME period = 0;
+    REFERENCE_TIME min_period = 0;
     zeromem(&fmt);
     if ((re = get_Device(name, &ori))) {
         goto end;
@@ -312,13 +313,13 @@ int open_WASAPI_device(MusicHandle* handle, const wchar_t* name) {
         re = FFMPEG_CORE_ERR_WASAPI_NO_SUITABLE_FORMAT;
         goto end;
     }
-    if (!SUCCEEDED(handle->wasapi->client->GetDevicePeriod(&period, nullptr))) {
+    if (!SUCCEEDED(handle->wasapi->client->GetDevicePeriod(&period, &min_period))) {
         GET_WIN_ERROR(errmsg, hr);
         av_log(NULL, AV_LOG_FATAL, "Failed to get device's period: %s (%lu).\n", errmsg.c_str(), hr);
         re = FFMPEG_CORE_ERR_WASAPI_FAILED_OPEN_DEVICE;
         goto end;
     }
-    if (!SUCCEEDED(hr = handle->wasapi->client->Initialize(handle->s->enable_exclusive ? AUDCLNT_SHAREMODE_EXCLUSIVE : AUDCLNT_SHAREMODE_SHARED, handle->s->enable_exclusive ? 0 : AUDCLNT_STREAMFLAGS_EVENTCALLBACK, period, handle->s->enable_exclusive ? period : 0, target_fmt, nullptr)) && hr != AUDCLNT_E_BUFFER_SIZE_NOT_ALIGNED) {
+    if (!SUCCEEDED(hr = handle->wasapi->client->Initialize(handle->s->enable_exclusive ? AUDCLNT_SHAREMODE_EXCLUSIVE : AUDCLNT_SHAREMODE_SHARED, handle->s->enable_exclusive ? 0 : AUDCLNT_STREAMFLAGS_EVENTCALLBACK, handle->s->enable_exclusive ? get_WASAPI_buffer_time(min_period, handle->s->wasapi_min_buffer_time) : period, handle->s->enable_exclusive ? period : 0, target_fmt, nullptr)) && hr != AUDCLNT_E_BUFFER_SIZE_NOT_ALIGNED) {
         GET_WIN_ERROR(errmsg, hr);
         av_log(NULL, AV_LOG_FATAL, "Failed to initialize the audio client: %s (%lu).\n", errmsg.c_str(), hr);
         re = FFMPEG_CORE_ERR_WASAPI_FAILED_OPEN_DEVICE;
@@ -719,4 +720,13 @@ void play_WASAPI_device(MusicHandle* handle, int play) {
     handle->wasapi->is_playing = play ? 1 : 0;
     if (handle->wasapi->is_playing) handle->wasapi->client->Start();
     else handle->wasapi->client->Stop();
+}
+
+REFERENCE_TIME get_WASAPI_buffer_time(REFERENCE_TIME min_device_preiord, int min_buffer_time) {
+    REFERENCE_TIME mintime = (REFERENCE_TIME)min_buffer_time * 10000;
+    REFERENCE_TIME re = min_device_preiord;
+    while (re < mintime) {
+        re += min_device_preiord;
+    }
+    return re;
 }

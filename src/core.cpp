@@ -606,6 +606,9 @@ FfmpegCoreSettings* ffmpeg_core_init_settings() {
     s->max_retry_count = 3;
     s->url_retry_interval = 5;
     s->max_wait_time = 3000;
+#if HAVE_WASAPI
+    s->wasapi_min_buffer_time = 20;
+#endif
     return s;
 }
 
@@ -844,5 +847,14 @@ int ffmpeg_core_settings_set_max_wait_time(FfmpegCoreSettings* s, int timeout) {
     if (!s) return 1;
     if (timeout < 100 || timeout > 30000) return 1;
     s->max_wait_time = timeout;
+    return 0;
+}
+
+int ffmpeg_core_settings_set_wasapi_min_buffer_time(FfmpegCoreSettings* s, int time) {
+#if HAVE_WASAPI
+    if (!s) return 1;
+    if (time < 20 || time > 30000) return 1;
+    s->wasapi_min_buffer_time = time;
+#endif
     return 0;
 }
