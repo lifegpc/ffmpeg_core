@@ -724,9 +724,9 @@ void play_WASAPI_device(MusicHandle* handle, int play) {
 
 REFERENCE_TIME get_WASAPI_buffer_time(REFERENCE_TIME min_device_preiord, int min_buffer_time) {
     REFERENCE_TIME mintime = (REFERENCE_TIME)min_buffer_time * 10000;
-    REFERENCE_TIME re = min_device_preiord;
-    while (re < mintime) {
-        re += min_device_preiord;
+    REFERENCE_TIME times = mintime / min_device_preiord;
+    if (mintime % min_device_preiord != 0) {
+        times++;
     }
-    return re;
+    return times * min_device_preiord;
 }
