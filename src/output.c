@@ -116,7 +116,9 @@ void SDL_callback(void* userdata, uint8_t* stream, int len) {
         // 无法获取Mutex所有权，填充空白数据
         memset(stream, 0, len);
         ADD_POSITION_DATA(len, 0)
+#if HAVE_WASAPI
         if (wasapi_get_object) ReleaseMutex(handle->mutex3);
+#endif
         return;
     }
     int samples_need = len / handle->target_format_pbytes / handle->sdl_spec.channels;

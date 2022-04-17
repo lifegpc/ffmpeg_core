@@ -302,7 +302,7 @@ int open_WASAPI_device(MusicHandle* handle, const wchar_t* name) {
         goto end;
     }
     for (int i = 0; i < 16; i++) {
-        if ((re = check_format_supported(handle->wasapi->client, handle->s->enable_exclusive, &fmt, &target_fmt, i))) {
+        if ((re = check_format_supported(handle->wasapi->client, handle->is_exclusive, &fmt, &target_fmt, i))) {
             goto end;
         }
         if (target_fmt) {
@@ -319,7 +319,7 @@ int open_WASAPI_device(MusicHandle* handle, const wchar_t* name) {
         re = FFMPEG_CORE_ERR_WASAPI_FAILED_OPEN_DEVICE;
         goto end;
     }
-    if (!SUCCEEDED(hr = handle->wasapi->client->Initialize(handle->s->enable_exclusive ? AUDCLNT_SHAREMODE_EXCLUSIVE : AUDCLNT_SHAREMODE_SHARED, handle->s->enable_exclusive ? 0 : AUDCLNT_STREAMFLAGS_EVENTCALLBACK, handle->s->enable_exclusive ? get_WASAPI_buffer_time(min_period, handle->s->wasapi_min_buffer_time) : period, handle->s->enable_exclusive ? period : 0, target_fmt, nullptr)) && hr != AUDCLNT_E_BUFFER_SIZE_NOT_ALIGNED) {
+    if (!SUCCEEDED(hr = handle->wasapi->client->Initialize(handle->is_exclusive ? AUDCLNT_SHAREMODE_EXCLUSIVE : AUDCLNT_SHAREMODE_SHARED, handle->is_exclusive ? 0 : AUDCLNT_STREAMFLAGS_EVENTCALLBACK, handle->is_exclusive ? get_WASAPI_buffer_time(min_period, handle->s->wasapi_min_buffer_time) : period, handle->is_exclusive ? period : 0, target_fmt, nullptr)) && hr != AUDCLNT_E_BUFFER_SIZE_NOT_ALIGNED) {
         GET_WIN_ERROR(errmsg, hr);
         av_log(NULL, AV_LOG_FATAL, "Failed to initialize the audio client: %s (%lu).\n", errmsg.c_str(), hr);
         re = FFMPEG_CORE_ERR_WASAPI_FAILED_OPEN_DEVICE;
@@ -461,7 +461,7 @@ int open_WASAPI_device(MusicHandle* handle, const wchar_t* name) {
         re = FFMPEG_CORE_ERR_FAILED_CREATE_EVENT;
         goto end;
     }
-    if (!handle->s->enable_exclusive) {
+    if (!handle->is_exclusive) {
         if (!SUCCEEDED(hr = handle->wasapi->client->SetEventHandle(handle->wasapi->eve))) {
             GET_WIN_ERROR(errmsg, hr);
             av_log(NULL, AV_LOG_FATAL, "Failed to set event handle to audio client: %s (%lu).\n", errmsg.c_str(), hr);
@@ -469,7 +469,7 @@ int open_WASAPI_device(MusicHandle* handle, const wchar_t* name) {
             goto end;
         }
     }
-    handle->wasapi->thread = CreateThread(nullptr, 0, handle->s->enable_exclusive ? wasapi_loop2 : wasapi_loop, handle, 0, nullptr);
+    handle->wasapi->thread = CreateThread(nullptr, 0, handle->is_exclusive ? wasapi_loop2 : wasapi_loop, handle, 0, nullptr);
     if (!handle->wasapi->thread) {
         re = FFMPEG_CORE_ERR_FAILED_CREATE_THREAD;
         goto end;

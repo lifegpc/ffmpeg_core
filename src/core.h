@@ -194,6 +194,8 @@ unsigned char is_wait_filters : 1;
 unsigned char is_use_wasapi : 1;
 /// WASAPI是否被初始化
 unsigned char wasapi_initialized : 1;
+/// 当前handle是否启用独占模式
+unsigned char is_exclusive: 1;
 #endif
 } MusicHandle;
 typedef struct MusicInfoHandle {

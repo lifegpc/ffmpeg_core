@@ -245,6 +245,9 @@ int ffmpeg_core_open3(const wchar_t* url, MusicHandle** h, FfmpegCoreSettings* s
     if (handle->s->use_wasapi) {
         handle->is_use_wasapi = 1;
     }
+    if (handle->s->enable_exclusive) {
+        handle->is_exclusive = 1;
+    }
 #endif
     handle->is_cda = is_cda_file(u.c_str());
     if (handle->is_cda) {
