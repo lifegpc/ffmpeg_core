@@ -87,7 +87,6 @@ void free_music_handle(MusicHandle* handle) {
 #endif
 #if HAVE_WASAPI
     if (handle->wasapi_initialized) {
-        handle->wasapi_initialized = 0;
         uninit_WASAPI();
     }
     position_data_list_clear(&handle->position_data);

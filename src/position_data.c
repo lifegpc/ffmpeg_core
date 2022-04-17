@@ -60,7 +60,7 @@ int64_t cal_true_pts(MusicHandle* handle) {
     if (re == WAIT_OBJECT_0) {
         uint32_t frame_count;
         int64_t re = 0;
-        if (handle->wasapi_initialized && SUCCEEDED(handle->wasapi->client->lpVtbl->GetCurrentPadding(handle->wasapi->client, &frame_count))) {
+        if (handle->wasapi && handle->wasapi->client && SUCCEEDED(handle->wasapi->client->lpVtbl->GetCurrentPadding(handle->wasapi->client, &frame_count))) {
             AVRational base = { 1, handle->sdl_spec.freq };
             re = cal_true_buffer_time(handle->position_data, av_rescale_q_rnd(handle->wasapi->frame_count - frame_count, base, AV_TIME_BASE_Q, AV_ROUND_NEAR_INF | AV_ROUND_PASS_MINMAX));
         }

@@ -488,8 +488,15 @@ end:
 
 void close_WASAPI_device(MusicHandle* handle) {
     if (!handle || !handle->wasapi) return;
-    free_WASAPIHandle(handle->wasapi);
-    handle->wasapi = nullptr;
+    DWORD re = WaitForSingleObject(handle->mutex3, 3000);
+    if (re == WAIT_OBJECT_0) {
+        free_WASAPIHandle(handle->wasapi);
+        handle->wasapi = nullptr;
+        ReleaseMutex(handle->mutex3);
+    } else {
+        free_WASAPIHandle(handle->wasapi);
+        handle->wasapi = nullptr;
+    }
 }
 
 #if NEW_CHANNEL_LAYOUT
@@ -726,10 +733,14 @@ end:
 }
 
 void play_WASAPI_device(MusicHandle* handle, int play) {
-    if (!handle || !handle->wasapi) return;
+    if (!handle || !handle->wasapi || !handle->wasapi->client) return;
+    DWORD re = WaitForSingleObject(handle->mutex3, 3000);
+    if (!handle->wasapi || !handle->wasapi->client) goto end;
     handle->wasapi->is_playing = play ? 1 : 0;
     if (handle->wasapi->is_playing) handle->wasapi->client->Start();
     else handle->wasapi->client->Stop();
+end:
+    if (re == WAIT_OBJECT_0) ReleaseMutex(handle->mutex3);
 }
 
 REFERENCE_TIME get_WASAPI_buffer_time(REFERENCE_TIME min_device_preiord, int min_buffer_time) {

@@ -157,7 +157,7 @@ int filters_buffer_offset;
 WASAPIHandle* wasapi;
 /// 存储WASAPI缓冲区信息
 PositionDataList* position_data;
-/// 用来确保WASAPI缓冲区信息不会同时被读取、修改
+/// 用来确保WASAPI缓冲区信同时被读取、修改以及确保WASAPI存在
 HANDLE mutex3;
 #endif
 /// SDL是否被初始化
