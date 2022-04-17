@@ -356,6 +356,11 @@ int open_WASAPI_device(MusicHandle* handle, const wchar_t* name) {
         re = FFMPEG_CORE_ERR_WASAPI_FAILED_OPEN_DEVICE;
         goto end;
     }
+    {
+        AVRational base = { 1, (int)target_fmt->nSamplesPerSec };
+        AVRational target = { 1, AV_TIME_BASE };
+        handle->wasapi->frame_pts = av_rescale_q_rnd(handle->wasapi->frame_count, base, target, AV_ROUND_NEAR_INF | AV_ROUND_PASS_MINMAX);
+    }
     if (!SUCCEEDED(hr = handle->wasapi->client->GetService(IID_IAudioRenderClient, (void**)&handle->wasapi->render))) {
         GET_WIN_ERROR(errmsg, hr);
         av_log(NULL, AV_LOG_FATAL, "Failed to get renderer from audio client: %s (%lu).\n", errmsg.c_str(), hr);
@@ -626,6 +631,11 @@ int init_wasapi_output(MusicHandle* handle, const char* device) {
     if (!(handle->buffer = av_audio_fifo_alloc(handle->target_format, handle->sdl_spec.channels, 1))) {
         av_log(NULL, AV_LOG_FATAL, "Failed to allocate buffer.\n");
         re = FFMPEG_CORE_ERR_OOM;
+        goto end;
+    }
+    handle->mutex3 = CreateMutexW(nullptr, FALSE, nullptr);
+    if (!handle->mutex3) {
+        re = FFMPEG_CORE_ERR_FAILED_CREATE_MUTEX;
         goto end;
     }
 end:

@@ -74,6 +74,7 @@ struct EqualizerChannels* next;
 } EqualizerChannels;
 #if HAVE_WASAPI
 typedef struct WASAPIHandle WASAPIHandle;
+typedef struct PositionDataList PositionDataList;
 #endif
 typedef struct MusicHandle {
 /// Demux 用
@@ -154,6 +155,10 @@ int64_t last_pkt_pts;
 int filters_buffer_offset;
 #if HAVE_WASAPI
 WASAPIHandle* wasapi;
+/// 存储WASAPI缓冲区信息
+PositionDataList* position_data;
+/// 用来确保WASAPI缓冲区信息不会同时被读取、修改
+HANDLE mutex3;
 #endif
 /// SDL是否被初始化
 unsigned char sdl_initialized : 1;
@@ -225,5 +230,8 @@ int wasapi_min_buffer_time;
 #if __cplusplus
 }
 std::wstring get_metadata_str(AVDictionary* dict, const char* key, int flags);
+inline enum AVRounding operator|(enum AVRounding a, enum AVRounding b) {
+    return static_cast<enum AVRounding>(static_cast<int>(a) | static_cast<int>(b));
+}
 #endif
 #endif

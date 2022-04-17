@@ -2,6 +2,12 @@
 
 #include "speed.h"
 #include "ch_layout.h"
+#if HAVE_WASAPI
+#include "position_data.h"
+#define ADD_POSITION_DATA(len, have_data) if (handle->is_use_wasapi) add_data_to_position_data(handle, len, have_data);
+#else
+#define ADD_POSITION_DATA(len, have_data)
+#endif
 
 int init_output(MusicHandle* handle, const char* device) {
     if (!handle) return FFMPEG_CORE_ERR_NULLPTR;
@@ -95,10 +101,21 @@ SDL_AudioFormat convert_to_sdl_format(enum AVSampleFormat fmt) {
 
 void SDL_callback(void* userdata, uint8_t* stream, int len) {
     MusicHandle* handle = (MusicHandle*)userdata;
+#if HAVE_WASAPI
+    /// 是否获取到了Mutex3所有权
+    char wasapi_get_object = 0;
+    if (handle->is_use_wasapi) {
+        DWORD tmp = WaitForSingleObject(handle->mutex3, 1);
+        if (tmp == WAIT_OBJECT_0) {
+            wasapi_get_object = 1;
+        }
+    }
+#endif
     DWORD re = WaitForSingleObject(handle->mutex, 5);
     if (re != WAIT_OBJECT_0) {
         // 无法获取Mutex所有权，填充空白数据
         memset(stream, 0, len);
+        ADD_POSITION_DATA(len, 0)
         return;
     }
     int samples_need = len / handle->target_format_pbytes / handle->sdl_spec.channels;
@@ -106,6 +123,7 @@ void SDL_callback(void* userdata, uint8_t* stream, int len) {
     if (av_audio_fifo_size(handle->buffer) == 0) {
         // 缓冲区没有数据，填充空白数据
         memset(stream, 0, len);
+        ADD_POSITION_DATA(len, 0)
     } else if (!handle->graph) {
         int writed = av_audio_fifo_read(handle->buffer, (void**)&stream, samples_need);
         if (writed > 0) {
@@ -116,9 +134,15 @@ void SDL_callback(void* userdata, uint8_t* stream, int len) {
         if (writed < 0) {
             // 读取发生错误，填充空白数据
             memset(stream, 0, len);
+            ADD_POSITION_DATA(len, 0)
         } else if (writed < samples_need) {
+            size_t len = ((size_t)samples_need - writed) * handle->target_format_pbytes, alen = (size_t)writed * handle->target_format_pbytes;
             // 不足的区域用空白数据填充
-            memset(stream + (size_t)writed * handle->target_format_pbytes, 0, (((size_t)samples_need - writed) * handle->target_format_pbytes));
+            memset(stream + alen, 0, len);
+            ADD_POSITION_DATA(alen, 1)
+            ADD_POSITION_DATA(len, 0)
+        } else {
+            ADD_POSITION_DATA(len, 1)
         }
     } else if (handle->is_easy_filters) {
         AVFrame* in = av_frame_alloc(), * out = av_frame_alloc();
@@ -126,12 +150,14 @@ void SDL_callback(void* userdata, uint8_t* stream, int len) {
         int samples_need_in = 0;
         if (!in || !out) {
             memset(stream, 0, len);
+            ADD_POSITION_DATA(len, 0)
             goto end;
         }
         samples_need_in = samples_need * get_speed(handle->s->speed) / 1000;
 #if NEW_CHANNEL_LAYOUT
         if (av_channel_layout_copy(&in->ch_layout, &handle->output_channel_layout) < 0) {
             memset(stream, 0, len);
+            ADD_POSITION_DATA(len, 0)
             goto end;
         }
 #else
@@ -143,6 +169,7 @@ void SDL_callback(void* userdata, uint8_t* stream, int len) {
         in->nb_samples = samples_need_in;
         if (av_frame_get_buffer(in, 0) < 0) {
             memset(stream, 0, len);
+            ADD_POSITION_DATA(len, 0)
             goto end;
         }
         // 从缓冲区读取数据
@@ -154,25 +181,31 @@ void SDL_callback(void* userdata, uint8_t* stream, int len) {
         }
         if (writed < 0) {
             memset(stream, 0, len);
+            ADD_POSITION_DATA(len, 0)
             goto end;
         }
         in->nb_samples = writed;
         // 喂给 filters 数据
         if (av_buffersrc_add_frame(handle->filter_inp, in) < 0) {
             memset(stream, 0, len);
+            ADD_POSITION_DATA(len, 0)
             goto end;
         }
         // 从 filters 拿回数据
         if (av_buffersink_get_frame(handle->filter_out, out) < 0) {
             memset(stream, 0, len);
+            ADD_POSITION_DATA(len, 0)
             goto end;
         }
         if (out->nb_samples >= samples_need) {
             memcpy(stream, out->data[0], len);
+            ADD_POSITION_DATA(len, 1)
         } else {
             size_t le = (size_t)out->nb_samples * handle->target_format_pbytes * handle->sdl_spec.channels;
             memcpy(stream, out->data[0], le);
+            ADD_POSITION_DATA(le, 1)
             memset(stream, 0, len - le);
+            ADD_POSITION_DATA(len - le, 0)
         }
 end:
         if (in) av_frame_free(&in);
@@ -191,14 +224,26 @@ end:
         if (writed < 0) {
             // 读取发生错误，填充空白数据
             memset(stream, 0, len);
+            ADD_POSITION_DATA(len, 0)
         } else if (writed < samples_need) {
+            size_t alen = (size_t)writed * handle->target_format_pbytes, len = ((size_t)samples_need - writed) * handle->target_format_pbytes;
             // 不足的区域用空白数据填充
-            memset(stream + (size_t)writed * handle->target_format_pbytes, 0, (((size_t)samples_need - writed) * handle->target_format_pbytes));
+            memset(stream + alen, 0, len);
+            ADD_POSITION_DATA(alen, 1)
+            ADD_POSITION_DATA(len, 0)
+        } else {
+            ADD_POSITION_DATA(len, 1)
         }
     } else {
         memset(stream, 0, len);
+        ADD_POSITION_DATA(len, 0)
     }
     ReleaseMutex(handle->mutex);
+#if HAVE_WASAPI
+    if (wasapi_get_object) {
+        ReleaseMutex(handle->mutex3);
+    }
+#endif
 }
 
 #if NEW_CHANNEL_LAYOUT

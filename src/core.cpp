@@ -21,6 +21,7 @@
 
 #if HAVE_WASAPI
 #include "wasapi.h"
+#include "position_data.h"
 #endif
 
 #define CODEPAGE_SIZE 3
@@ -88,6 +89,7 @@ void free_music_handle(MusicHandle* handle) {
     if (handle->wasapi_initialized) {
         uninit_WASAPI();
     }
+    position_data_list_clear(&handle->position_data);
 #endif
     if (handle->s && handle->settings_is_alloc) {
         free_ffmpeg_core_settings(handle->s);
@@ -405,9 +407,13 @@ int ffmpeg_core_pause(MusicHandle* handle) {
 
 int64_t ffmpeg_core_get_cur_position(MusicHandle* handle) {
     if (!handle) return -1;
-    if (handle->only_part) return handle->pts - handle->part_start_pts;
-    // 忽略 SDL 可能长达 0.01s 的 buffer
-    return handle->pts;
+#if HAVE_WASAPI
+    int64_t pts = cal_true_pts(handle);
+#else
+    int64_t pts = handle->pts;
+#endif
+    if (handle->only_part) return pts - handle->part_start_pts;
+    return pts;
 }
 
 int ffmpeg_core_song_is_over(MusicHandle* handle) {

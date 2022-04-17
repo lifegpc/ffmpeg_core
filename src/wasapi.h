@@ -17,6 +17,8 @@ uint32_t frame_count;
 HANDLE thread;
 HRESULT err;
 HANDLE eve;
+/// 缓冲区长度（时间）
+int64_t frame_pts;
 unsigned char is_playing : 1;
 unsigned char have_err : 1;
 unsigned char stoping : 1;
