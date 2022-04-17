@@ -680,7 +680,7 @@ DWORD WINAPI wasapi_loop2(LPVOID handle) {
             count = w->frame_count - padding;
             DEAL_WASAPI_LOOP_ERROR(hr = w->render->GetBuffer(count, &data));
             SDL_callback((void*)handle, data, count * h->target_format_pbytes * h->sdl_spec.channels);
-            w->last_padding = 0;
+            w->last_padding = w->frame_count;
         } else {
             Sleep(1);
         }
