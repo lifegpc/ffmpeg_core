@@ -60,8 +60,12 @@ int64_t cal_true_pts(MusicHandle* handle) {
     if (re == WAIT_OBJECT_0) {
         uint32_t frame_count;
         int64_t re = 0;
-        if (handle->wasapi && handle->wasapi->client && SUCCEEDED(handle->wasapi->client->lpVtbl->GetCurrentPadding(handle->wasapi->client, &frame_count))) {
-            AVRational base = { 1, handle->sdl_spec.freq };
+        AVRational base = { 1, handle->sdl_spec.freq };
+        // 独占模式读取padding可能会导致GetBuffer抛出致命性错误
+        // 采用处理线程缓存的padding来估算
+        if (handle->is_exclusive && handle->wasapi) {
+            re = cal_true_buffer_time(handle->position_data, av_rescale_q_rnd(handle->wasapi->last_padding, base, AV_TIME_BASE_Q, AV_ROUND_NEAR_INF | AV_ROUND_PASS_MINMAX));
+        } else if (!handle->is_exclusive && handle->wasapi && handle->wasapi->client && SUCCEEDED(handle->wasapi->client->lpVtbl->GetCurrentPadding(handle->wasapi->client, &frame_count))) {
             re = cal_true_buffer_time(handle->position_data, av_rescale_q_rnd(frame_count, base, AV_TIME_BASE_Q, AV_ROUND_NEAR_INF | AV_ROUND_PASS_MINMAX));
         }
         ReleaseMutex(handle->mutex3);

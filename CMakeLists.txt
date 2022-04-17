@@ -56,6 +56,7 @@ src/ch_layout.c
 "${CMAKE_CURRENT_BINARY_DIR}/ffmpeg_core.rc"
 "${CMAKE_CURRENT_BINARY_DIR}/ffmpeg_core_version.h"
 "${CMAKE_CURRENT_BINARY_DIR}/ffmpeg_core_config.h"
+.editorconfig
 )
 
 if (ENABLE_WASAPI)

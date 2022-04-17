@@ -19,6 +19,8 @@ HRESULT err;
 HANDLE eve;
 /// 缓冲区长度（时间）
 int64_t frame_pts;
+/// 上一次padding（用来大致计算）
+uint32_t last_padding;
 unsigned char is_playing : 1;
 unsigned char have_err : 1;
 unsigned char stoping : 1;
