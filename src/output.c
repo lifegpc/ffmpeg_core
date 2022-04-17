@@ -4,7 +4,7 @@
 #include "ch_layout.h"
 #if HAVE_WASAPI
 #include "position_data.h"
-#define ADD_POSITION_DATA(len, have_data) if (handle->is_use_wasapi) add_data_to_position_data(handle, len, have_data);
+#define ADD_POSITION_DATA(len, have_data) if (handle->is_use_wasapi && wasapi_get_object) add_data_to_position_data(handle, len, have_data);
 #else
 #define ADD_POSITION_DATA(len, have_data)
 #endif
