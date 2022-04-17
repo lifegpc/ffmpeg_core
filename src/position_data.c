@@ -5,6 +5,7 @@
 int64_t cal_true_buffer_time(PositionDataList* list, int64_t buffered) {
     if (!list) return 0;
     PositionDataList* t = position_data_list_tail(list);
+    if (!t) return 0;
     int64_t result = 0;
     if (t->have_data) {
         result += min(buffered, t->length);
