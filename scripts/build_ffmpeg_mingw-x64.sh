@@ -11,7 +11,7 @@ git clone --depth 1 'https://git.ffmpeg.org/ffmpeg.git' && cd ffmpeg || exit 1
     --disable-autodetect \
     --disable-encoders \
     --disable-filters \
-    "--enable-filter=volume,atempo,equalizer,aresample" \
+    "--enable-filter=volume,atempo,equalizer,aresample,aecho" \
     --disable-muxers \
     --enable-bzlib \
     --enable-gnutls \
