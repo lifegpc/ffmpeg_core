@@ -678,7 +678,8 @@ DWORD WINAPI wasapi_loop2(LPVOID handle) {
             toDo = 1;
         }
         if (toDo) {
-            count = w->frame_count - padding;
+            // 一次最多塞50ms数据
+            count = min(w->frame_count - padding, h->sdl_spec.freq / 20);
             DEAL_WASAPI_LOOP_ERROR(hr = w->render->GetBuffer(count, &data));
             SDL_callback((void*)handle, data, count * h->target_format_pbytes * h->sdl_spec.channels);
             w->last_padding = w->frame_count;
