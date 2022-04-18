@@ -673,7 +673,8 @@ DWORD WINAPI wasapi_loop2(LPVOID handle) {
         if (w->stoping) break;
         DEAL_WASAPI_LOOP_ERROR(hr = w->client->GetCurrentPadding(&padding));
         w->last_padding = padding;
-        if (padding < w->frame_count / 2) {
+        // 缓冲区还剩不到一半或者空余的缓冲区超过0.5s时补充缓冲区
+        if (padding < w->frame_count / 2 || (w->frame_count > h->sdl_spec.freq && padding < (w->frame_count - h->sdl_spec.freq / 2))) {
             toDo = 1;
         }
         if (toDo) {
