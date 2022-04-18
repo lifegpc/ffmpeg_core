@@ -52,6 +52,9 @@ struct DeviceNameList* next;
 #define FFMPEG_CORE_ERR_FAILED_CREATE_EVENT 27
 #define FFMPEG_CORE_ERR_TIMEOUT 28
 #define FFMPEG_CORE_ERR_WAIT_TIMEOUT 29
+#define REVERB_TYPE_OFF 0
+#define REVERB_TYPE_ROOM 1
+#define REVERB_TYPE_MAX 1
 FFMPEG_CORE_API void free_music_handle(MusicHandle* handle);
 FFMPEG_CORE_API void free_music_info_handle(MusicInfoHandle* handle);
 FFMPEG_CORE_API void free_ffmpeg_core_settings(FfmpegCoreSettings* s);
@@ -80,6 +83,7 @@ FFMPEG_CORE_API int ffmpeg_core_seek(MusicHandle* handle, int64_t time);
 FFMPEG_CORE_API int ffmpeg_core_set_volume(MusicHandle* handle, int volume);
 FFMPEG_CORE_API int ffmpeg_core_set_speed(MusicHandle* handle, float speed);
 FFMPEG_CORE_API int ffmpeg_core_set_equalizer_channel(MusicHandle* handle, int channel, int gain);
+FFMPEG_CORE_API int ffmpeg_core_set_reverb(MusicHandle* handle, int type, float mix, float time);
 FFMPEG_CORE_API int ffmpeg_core_get_error(MusicHandle* handle);
 /**
  * @brief 返回错误代码对应的错误消息
@@ -166,6 +170,7 @@ FFMPEG_CORE_API int ffmpeg_core_settings_set_use_WASAPI(FfmpegCoreSettings* s, i
 FFMPEG_CORE_API int ffmpeg_core_settings_set_enable_exclusive(FfmpegCoreSettings* s, int enable);
 FFMPEG_CORE_API int ffmpeg_core_settings_set_max_wait_time(FfmpegCoreSettings* s, int timeout);
 FFMPEG_CORE_API int ffmpeg_core_settings_set_wasapi_min_buffer_time(FfmpegCoreSettings* s, int time);
+FFMPEG_CORE_API int ffmpeg_core_settings_set_reverb(FfmpegCoreSettings* s, int type, float mix, float time);
 FFMPEG_CORE_API DeviceNameList* ffmpeg_core_get_audio_devices();
 #ifdef __cplusplus
 }

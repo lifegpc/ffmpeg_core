@@ -4,6 +4,7 @@
 #include "volume.h"
 #include "speed.h"
 #include "equalizer.h"
+#include "reverb.h"
 
 int need_filters(FfmpegCoreSettings* s) {
     if (!s) return 0;
@@ -17,6 +18,9 @@ int need_filters(FfmpegCoreSettings* s) {
         return 1;
     }
     if (s->equalizer_channels && avfilter_get_by_name("equalizer")) {
+        return 1;
+    }
+    if (s->reverb_type && avfilter_get_by_name("aecho")) {
         return 1;
     }
     return 0;
@@ -56,6 +60,12 @@ int init_filters(MusicHandle* handle) {
             if ((re = create_equalizer_filter(handle->graph, handle->filter_inp, &handle->filters, now->d.channel, now->d.gain, handle->target_format))) {
                 return re;
             }
+        }
+        is_easy_filters = 0;
+    }
+    if (handle->s->reverb_type && avfilter_get_by_name("aecho")) {
+        if ((re = create_reverb_filter(handle->graph, handle->filter_inp, &handle->filters, handle->s->reverb_delay, handle->s->reverb_mix, handle->s->reverb_type))) {
+            return re;
         }
         is_easy_filters = 0;
     }
@@ -140,6 +150,12 @@ int reinit_filters(MusicHandle* handle) {
             if ((re = create_equalizer_filter(graph, inc, &list, now->d.channel, now->d.gain, handle->target_format))) {
                 goto end;
             }
+        }
+        is_easy_filters = 0;
+    }
+    if (handle->s->reverb_type && avfilter_get_by_name("aecho")) {
+        if ((re = create_reverb_filter(graph, inc, &list, handle->s->reverb_delay, handle->s->reverb_mix, handle->s->reverb_type))) {
+            goto end;
         }
         is_easy_filters = 0;
     }

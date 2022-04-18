@@ -228,6 +228,12 @@ int max_wait_time;
 /// WASAPI 独占模式最小缓冲区大小（单位：ms）
 int wasapi_min_buffer_time;
 #endif
+/// 混响强度
+float reverb_mix;
+/// 混响持续时间
+float reverb_delay;
+/// 混响类型
+int reverb_type;
 } FfmpegCoreSettings;
 #if __cplusplus
 }

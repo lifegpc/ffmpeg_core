@@ -53,6 +53,10 @@ src/equalizer.h
 src/equalizer.c
 src/ch_layout.h
 src/ch_layout.c
+src/reverb.h
+src/reverb.c
+src/linked_list/float_linked_list.h
+src/linked_list/float_linked_list.cpp
 "${CMAKE_CURRENT_BINARY_DIR}/ffmpeg_core.rc"
 "${CMAKE_CURRENT_BINARY_DIR}/ffmpeg_core_version.h"
 "${CMAKE_CURRENT_BINARY_DIR}/ffmpeg_core_config.h"

@@ -833,37 +833,57 @@ int ffmpeg_core_is_wasapi_supported() {
 }
 
 int ffmpeg_core_settings_set_use_WASAPI(FfmpegCoreSettings* s, int enable) {
-    if (!s) return 1;
+    if (!s) return 0;
 #if HAVE_WASAPI
     s->use_wasapi = enable ? 1 : 0;
-    return 0;
+    return 1;
 #else
-    return enable ? 1 : 0;
+    return 0;
 #endif
 }
 
 int ffmpeg_core_settings_set_enable_exclusive(FfmpegCoreSettings* s, int enable) {
-    if (!s) return 1;
+    if (!s) return 0;
 #if HAVE_WASAPI
     s->enable_exclusive = enable ? 1 : 0;
-    return 0;
+    return 1;
 #else
     return enable ? 1 : 0;
 #endif
 }
 
 int ffmpeg_core_settings_set_max_wait_time(FfmpegCoreSettings* s, int timeout) {
-    if (!s) return 1;
-    if (timeout < 100 || timeout > 30000) return 1;
+    if (!s) return 0;
+    if (timeout < 100 || timeout > 30000) return 0;
     s->max_wait_time = timeout;
-    return 0;
+    return 1;
 }
 
 int ffmpeg_core_settings_set_wasapi_min_buffer_time(FfmpegCoreSettings* s, int time) {
 #if HAVE_WASAPI
-    if (!s) return 1;
-    if (time < 20 || time > 30000) return 1;
+    if (!s) return 0;
+    if (time < 20 || time > 30000) return 0;
     s->wasapi_min_buffer_time = time;
 #endif
     return 0;
+}
+
+int ffmpeg_core_settings_set_reverb(FfmpegCoreSettings* s, int type, float mix, float time) {
+    if (!s || type < REVERB_TYPE_OFF || type > REVERB_TYPE_MAX) return 0;
+    if (type == REVERB_TYPE_OFF) {
+        s->reverb_type = REVERB_TYPE_OFF;
+        return 1;
+    }
+    if (mix <= 0 || time <= 0) return 0;
+    s->reverb_type = type;
+    s->reverb_delay = time;
+    s->reverb_mix = mix;
+    return 1;
+}
+
+int ffmpeg_core_set_reverb(MusicHandle* handle, int type, float mix, float time) {
+    if (!handle || !handle->s) return FFMPEG_CORE_ERR_NULLPTR;
+    int re = ffmpeg_core_settings_set_reverb(handle->s, type, mix, time);
+    if (!re) return AVERROR(EINVAL);
+    return send_reinit_filters(handle);
 }
