@@ -30,8 +30,8 @@ if (tmp) { \
 int create_reverb_filter(AVFilterGraph* graph, AVFilterContext* src, c_linked_list** list, float delay, float mix, int type) {
     if (!graph || !src || !list) return FFMPEG_CORE_ERR_NULLPTR;
     const AVFilter* aecho = avfilter_get_by_name("aecho");
-    float in_gain = 0.8f;
-    float out_gain = 0.6f;
+    float in_gain = 1.0f;
+    float out_gain = 1.0f;
     float_linked_list* delays = NULL, * decays = NULL;
     AVFilterContext* context = NULL;
     AVDictionary* opts = NULL;
@@ -46,6 +46,7 @@ int create_reverb_filter(AVFilterGraph* graph, AVFilterContext* src, c_linked_li
                 APPEND_DATA(delays, d)
                 APPEND_DATA(decays, mix)
                 APPEND_DATA(decays, mix * d)
+                out_gain = 0.99f / (1.0f + mix + mix * d);
             }
             break;
         default:
