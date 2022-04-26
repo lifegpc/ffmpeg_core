@@ -571,6 +571,9 @@ jobs:
         path: ./mingw-x86-wasapi-release.7z
   msvc-x64-debug:
     runs-on: windows-2022
+    defaults:
+      run:
+        shell: cmd
     steps:
     - name: Check Out
       uses: actions/checkout@v2
