@@ -585,7 +585,7 @@ jobs:
       shell: cmd
       run: |
         cd scripts
-        python get_cache_key.py msvc-x64 zlib bzlib gnutls cdio-paranoia pkgconf SDL2 || exit 1
+        python get_cache_key.py msvc-x64 zlib bzlib gnutls cdio cdio-paranoia pkgconf SDL2 || exit 1
     - name: Cache
       id: cache
       uses: actions/cache@v2
@@ -628,6 +628,8 @@ jobs:
     - name: Download libcdio
       if: steps.cache.outputs.cache-hit != 'true'
       run: |
+        COPY /Y scripts\download_cdio_msvc-x64.bat || exit 1
+        CALL scripts\download_cdio_msvc-x64.bat || exit 1
         COPY /Y scripts\download_cdio-paranoia_msvc-x64.bat || exit 1
         CALL download_cdio-paranoia_msvc-x64.bat || exit 1
     - name: Build pkgconf
