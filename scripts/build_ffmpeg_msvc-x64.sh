@@ -23,7 +23,10 @@ git clone --depth 1 'https://git.ffmpeg.org/ffmpeg.git' && cd ffmpeg || exit 1
     --enable-libcdio \
     --enable-zlib \
     --pkg-config-flags="--env-only" \
-    --toolchain=msvc \
-    || exit 1
+    --toolchain=msvc
+if [ $? != 0 ]; then
+    cat ffbuild/config.log
+    exit 1
+fi
 make -j8 || exit 1
 make -j8 install || exit 1
