@@ -585,7 +585,7 @@ jobs:
       shell: cmd
       run: |
         cd scripts
-        python get_cache_key.py msvc-x64 zlib || exit 1
+        python get_cache_key.py msvc-x64 zlib bzlib || exit 1
     - name: Cache
       id: cache
       uses: actions/cache@v2
@@ -597,3 +597,8 @@ jobs:
       run: |
         COPY /Y scripts\build_zlib_msvc-x64.bat || exit 1
         CALL build_zlib_msvc-x64.bat || exit 1
+    - name: Build bzlib
+      if: steps.cache.outputs.cache-hit != 'true'
+      run: |
+        COPY /Y scripts\build_bzlib_msvc-x64.bat || exit 1
+        CALL build_bzlib_msvc-x64.bat || exit 1
