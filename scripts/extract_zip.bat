@@ -1,0 +1,19 @@
+@ECHO OFF
+SETLOCAL
+SET EXTRACT_ZIP_PY=extract_zip.py
+IF NOT EXIST %EXTRACT_ZIP_PY% (
+    SET EXTRACT_ZIP_PY=%CD%\extract_zip.py
+    IF NOT EXIST %EXTRACT_ZIP_PY% (
+        IF DEFINED SCRIPTS_DIR (
+            SET EXTRACT_ZIP_PY=%SCRIPTS_DIR%\extract_zip.py
+        )
+    )
+)
+IF NOT EXIST %EXTRACT_ZIP_PY% (
+    EXIT /B 1
+)
+python %EXTRACT_ZIP_PY% %*
+IF %ERRORLEVEL% NEQ 0 (
+    EXIT /B %ERRORLEVEL%
+)
+ENDLOCAL

@@ -24,6 +24,9 @@ def hash_file(type, feature) -> str:
     fn = f'build_{feature}_{type}.bat'
     if exists(fn):
         fnl.append(fn)
+    fn = f'download_{feature}_{type}.bat'
+    if exists(fn):
+        fnl.append(fn)
     if len(fnl) == 0:
         return ''
     s = _sha256()
