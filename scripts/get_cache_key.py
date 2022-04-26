@@ -17,15 +17,22 @@ def sha256(data) -> str:
 
 
 def hash_file(type, feature) -> str:
+    fnl = []
     fn = f"build_{feature}_{type}.sh"
-    if not exists(fn):
+    if exists(fn):
+        fnl.append(fn)
+    fn = f'build_{feature}_{type}.bat'
+    if exists(fn):
+        fnl.append(fn)
+    if len(fnl) == 0:
         return ''
-    with open(fn, 'rb') as f:
-        c = f.read(256)
-        s = _sha256()
-        while len(c) > 0:
-            s.update(c)
+    s = _sha256()
+    for fn in fnl:
+        with open(fn, 'rb') as f:
             c = f.read(256)
+            while len(c) > 0:
+                s.update(c)
+                c = f.read(256)
     return s.hexdigest()
 
 

@@ -580,7 +580,20 @@ jobs:
       with:
         fetch-depth: 0
         submodules: true
+    - name: Get Cache Key
+      id: cache_key
+      shell: cmd
+      run: |
+        cd scripts
+        python get_cache_key.py msvc-x64 zlib || exit 1
+    - name: Cache
+      id: cache
+      uses: actions/cache@v2
+      with:
+        path: clib/
+        key: msvc-x64-debug-${{ steps.cache_key.outputs.cache_key }}
     - name: Build zlib
+      if: steps.cache.outputs.cache-hit != 'true'
       run: |
         COPY /Y scripts\build_zlib_msvc-x64.bat || exit 1
         CALL build_zlib_msvc-x64.bat || exit 1
