@@ -6,7 +6,7 @@ IF NOT EXIST cbuild (
     MD cbuild || EXIT /B 1
 )
 CD cbuild || EXIT /B 1
-git clone https://github.com/lifegpc/bzip2-msvc || EXIT /B %ERRORLEVEL%
+git clone --depth 1 https://github.com/lifegpc/bzip2-msvc || EXIT /B %ERRORLEVEL%
 CD bzip2-msvc || EXIT /B 1
 IF NOT EXIST build (
     MD build || EXIT /B 1
