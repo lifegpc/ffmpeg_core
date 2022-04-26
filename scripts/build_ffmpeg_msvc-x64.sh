@@ -11,7 +11,7 @@ git clone --depth 1 'https://git.ffmpeg.org/ffmpeg.git' && cd ffmpeg || exit 1
     --enable-shared \
     --disable-static \
     --enable-version3 \
-    --prefix=$PREFIX \
+    --prefix=${PREFIX2//\\//} \
     --disable-doc \
     --disable-autodetect \
     --disable-encoders \
@@ -30,3 +30,4 @@ if [ $? != 0 ]; then
 fi
 make -j8 || exit 1
 make -j8 install || exit 1
+mv -fv $PREFIX/bin/*.lib $PREFIX/lib || exit 1
