@@ -569,3 +569,17 @@ jobs:
       with:
         name: mingw-x86-wasapi-release
         path: ./mingw-x86-wasapi-release.7z
+  msvc-x64-debug:
+    runs-on: windows-2022
+    steps:
+    - name: Check Out
+      uses: actions/checkout@v2
+      with:
+        fetch-depth: 0
+        submodules: true
+    - name: Setup Ninja
+      uses: seanmiddleditch/gha-setup-ninja@v3
+    - name: Build zlib
+      run: |
+        COPY /Y scripts\build_zlib_msvc-x64.bat || exit 1
+        CALL build_zlib_msvc-x64.bat || exit 1
