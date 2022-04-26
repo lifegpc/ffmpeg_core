@@ -592,6 +592,23 @@ jobs:
       with:
         path: clib/
         key: msvc-x64-debug-${{ steps.cache_key.outputs.cache_key }}
+    - name: Install Meson and Ninja
+      if: steps.cache.outputs.cache-hit != 'true'
+      run: |
+        python -m pip install --upgrade meson ninja
+    - name: Setup CL
+      if: steps.cache.outputs.cache-hit != 'true'
+      uses: ilammy/msvc-dev-cmd@v1
+    - name: Set up NASM
+      uses: ilammy/setup-nasm@v1.3.0
+    - name: Setup MSYS2
+      if: steps.cache.outputs.cache-hit != 'true'
+      uses: msys2/setup-msys2@v2
+      with:
+        msystem: MINGW64
+        update: true
+        install: >-
+          base-devel
     - name: Build zlib
       if: steps.cache.outputs.cache-hit != 'true'
       run: |
@@ -612,13 +629,6 @@ jobs:
       run: |
         COPY /Y scripts\download_cdio-paranoia_msvc-x64.bat || exit 1
         CALL download_cdio-paranoia_msvc-x64.bat || exit 1
-    - name: Install Meson and Ninja
-      if: steps.cache.outputs.cache-hit != 'true'
-      run: |
-        python -m pip install --upgrade meson ninja
-    - name: Setup CL
-      if: steps.cache.outputs.cache-hit != 'true'
-      uses: ilammy/msvc-dev-cmd@v1
     - name: Build pkgconf
       if: steps.cache.outputs.cache-hit != 'true'
       run: |
@@ -629,3 +639,11 @@ jobs:
       run: |
         COPY /Y scripts\build_SDL2_msvc-x64.bat || exit 1
         CALL build_SDL2_msvc-x64.bat || exit 1
+    - name: Build FFMPEG
+      if: steps.cache.outputs.cache-hit != 'true'
+      shell: msys2 {0}
+      env:
+        MSYS2_PATH_TYPE: inherit
+      run: |
+        cp scripts/build_ffmpeg_msvc-x64.sh -v ./ || exit 1
+        ./build_ffmpeg_msvc-x64.sh || exit 1

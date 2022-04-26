@@ -20,4 +20,6 @@ cmake ^
 cmake --build . --config Release && cmake --build . --config Release --target INSTALL ^
     || cmake --build . --config Release && cmake --build . --config Release --target INSTALL ^
     || EXIT /B %ERRORLEVEL%
+CD %PREFIX%\lib || EXIT /B 1
+COPY /Y libbz2.lib bz2.lib || EXIT /B 1
 ENDLOCAL
