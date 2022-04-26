@@ -1,6 +1,6 @@
---- zconf.h.orig	2022-04-26 08:25:28 +0000
-+++ zconf.h	2022-04-26 08:29:35 +0000
-@@ -474,7 +474,7 @@ typedef uLong FAR uLongf;
+--- zconf.h.orig	2022-04-26 09:20:44 +0000
++++ zconf.h	2022-04-26 09:23:39 +0000
+@@ -474,7 +474,7 @@
  #endif
  #ifndef Z_SOLO
  #  if defined(Z_HAVE_UNISTD_H) || defined(_LARGEFILE64_SOURCE)
