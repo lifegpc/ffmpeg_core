@@ -580,10 +580,6 @@ jobs:
       with:
         fetch-depth: 0
         submodules: true
-    - name: Setup msbuild
-      uses: microsoft/setup-msbuild@v1.1
-    - name: Setup Ninja
-      uses: seanmiddleditch/gha-setup-ninja@v3
     - name: Build zlib
       run: |
         COPY /Y scripts\build_zlib_msvc-x64.bat || exit 1

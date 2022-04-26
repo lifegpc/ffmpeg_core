@@ -18,13 +18,14 @@ IF NOT EXIST build (
 )
 CD build || EXIT /B 1
 cmake ^
-    -G Ninja ^
     -DCMAKE_PREFIX_PATH=%PREFIX% ^
     -DCMAKE_BUILD_TYPE=Release ^
     -DCMAKE_INSTALL_PREFIX=%PREFIX% ^
     -DINSTALL_PKGCONFIG_DIR=%PKG_CONFIG_DIR% ^
     ../ || EXIT /B %ERRORLEVEL%
-ninja && ninja install || ninja && ninja install || EXIT /B %ERRORLEVEL%
+cmake --build . --config Release && cmake --build . --config Release --target INSTALL ^
+    || cmake --build . --config Release && cmake --build . --config Release --target INSTALL ^
+    || EXIT /B %ERRORLEVEL%
 CD %PREFIX%\include || EXIT /B 1
 patch -p1 zconf.h %PATCH_DIR%\zconf.h.patch || EXIT /B %ERRORLEVEL%
 ENDLOCAL
