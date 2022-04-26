@@ -585,7 +585,7 @@ jobs:
       shell: cmd
       run: |
         cd scripts
-        python get_cache_key.py msvc-x64 zlib bzlib gnutls cdio-paranoia pkgconf || exit 1
+        python get_cache_key.py msvc-x64 zlib bzlib gnutls cdio-paranoia pkgconf SDL2 || exit 1
     - name: Cache
       id: cache
       uses: actions/cache@v2
@@ -624,3 +624,8 @@ jobs:
       run: |
         COPY /Y scripts\build_pkgconf_msvc-x64.bat || exit 1
         CALL build_pkgconf_msvc-x64.bat || exit 1
+    - name: Build SDL2
+      if: steps.cache.outputs.cache-hit != 'true'
+      run: |
+        COPY /Y scripts\build_SDL2_msvc-x64.bat || exit 1
+        CALL build_SDL2_msvc-x64.bat || exit 1
