@@ -585,7 +585,7 @@ jobs:
       shell: cmd
       run: |
         cd scripts
-        python get_cache_key.py msvc-x64 zlib bzlib gnutls cdio cdio-paranoia pkgconf SDL2 || exit 1
+        python get_cache_key.py msvc-x64 zlib bzlib gnutls cdio cdio-paranoia pkgconf SDL2 ffmpeg || exit 1
     - name: Cache
       id: cache
       uses: actions/cache@v2
@@ -650,3 +650,7 @@ jobs:
       run: |
         cp scripts/build_ffmpeg_msvc-x64.sh -v ./ || exit 1
         ./build_ffmpeg_msvc-x64.sh || exit 1
+    - name: Build FFMPEG Core
+      run: |
+        COPY /Y scripts\build_ffmpeg_core_msvc-x64-debug.bat || exit 1
+        CALL build_ffmpeg_core_msvc-x64-debug.bat || exit 1

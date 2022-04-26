@@ -11,6 +11,6 @@ IF NOT EXIST cbuild (
     MD cbuild || EXIT /B 1
 )
 CD cbuild || EXIT /B 1
-CALL %DOWNLOAD_RESOURCE% -o "%FILE%" "https://github.com/ShiftMediaProject/libcdio/releases/download/release-%VERSION%/%FILE%"
+CALL %DOWNLOAD_RESOURCE% -o "%FILE%" "https://github.com/ShiftMediaProject/libcdio/releases/download/release-%VERSION%/%FILE%" || EXIT /B %ERRORLEVEL%
 CALL %EXTRACT_ZIP% "%FILE%" x64 "%PREFIX%" || EXIT /B %ERRORLEVEL%
 ENDLOCAL
