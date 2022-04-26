@@ -585,4 +585,4 @@ jobs:
     - name: Build zlib
       run: |
         COPY /Y scripts\build_zlib_msvc-x64.bat || exit 1
-        CALL build_zlib_msvc-x64.bat || exit 1
+        build_zlib_msvc-x64.bat || exit 1

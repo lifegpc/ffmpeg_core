@@ -15,9 +15,6 @@ IF NOT EXIST %DOWNLOAD_RESOURCE_PY% (
 python %DOWNLOAD_RESOURCE_PY% %*
 IF ERRORLEVEL 2 (
     python -m pip install --upgrade requests
-    IF %ERRORLEVEL% NEQ 0 (
-        EXIT /B 2
-    )
     python %DOWNLOAD_RESOURCE_PY% %*
 )
 IF %ERRORLEVEL% NEQ 0 (
