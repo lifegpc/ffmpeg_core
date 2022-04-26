@@ -18,15 +18,15 @@ IF NOT EXIST pkgconfig (
     MD pkgconfig || EXIT /B 1
 )
 CD pkgconfig || EXIT /B 1
-IF EXIST libcdio-paranoia.pc (
-    DEL /Q libcdio-paranoia.pc || EXIT /B 1
+IF EXIST libcdio_paranoia.pc (
+    DEL /Q libcdio_paranoia.pc || EXIT /B 1
 )
-echo prefix=%PREFIX:\=/% > libcdio-paranoia.pc
-echo libdir=${prefix}/lib >> libcdio-paranoia.pc
-echo includedir=${prefix}/include >> libcdio-paranoia.pc
-echo Name: libcdio-paranoia >> libcdio-paranoia.pc
-echo Description: CD paranoia library from libcdio >> libcdio-paranoia.pc
-echo Version: %VERSION:+=.% >> libcdio-paranoia.pc
-echo Libs: -L${libdir} -lcdio-paranoia >> libcdio-paranoia.pc
-echo Cflags: -I${includedir} >> libcdio-paranoia.pc
+echo prefix=%PREFIX:\=/% > libcdio_paranoia.pc
+echo libdir=${prefix}/lib >> libcdio_paranoia.pc
+echo includedir=${prefix}/include >> libcdio_paranoia.pc
+echo Name: libcdio_paranoia >> libcdio_paranoia.pc
+echo Description: CD paranoia library from libcdio >> libcdio_paranoia.pc
+echo Version: %VERSION:+=.% >> libcdio_paranoia.pc
+echo Libs: -L${libdir} -lcdio_paranoia >> libcdio_paranoia.pc
+echo Cflags: -I${includedir} >> libcdio_paranoia.pc
 ENDLOCAL
