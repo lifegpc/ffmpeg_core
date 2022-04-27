@@ -662,8 +662,14 @@ jobs:
       run: |
         SET PATH=%CD%\clib\bin;%PATH%
         python scripts/pack_prog.py -o msvc-x64-debug.7z %CD%\lib\bin\ffmpeg_core.dll || exit 1
+        python scripts/pack_prog.py -o msvc-x64-debug-pdb.7z -p %CD%\lib\bin\ffmpeg_core.dll || exit 1
     - name: Upload files
       uses: actions/upload-artifact@v3
       with:
         name: msvc-x64-debug
         path: ./msvc-x64-debug.7z
+    - name: Upload PDB files
+      uses: actions/upload-artifact@v3
+      with:
+        name: msvc-x64-debug-pdb
+        path: ./msvc-x64-debug-pdb.7z
