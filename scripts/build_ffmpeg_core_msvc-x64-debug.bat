@@ -4,7 +4,6 @@ SET TOP=%CD%
 SET PREFIX=%CD%\clib
 SET PATH=%PREFIX%\bin;%PATH%
 SET INSTALL_PREFIX=%CD%\lib
-SET INCLUDE=%INCLUDE%;%PREFIX%\include
 IF NOT EXIST build (
     MD build || EXIT /B 1
 )

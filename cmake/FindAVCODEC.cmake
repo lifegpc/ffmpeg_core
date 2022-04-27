@@ -16,6 +16,9 @@ if (PC_AVCODEC_FOUND)
     if (NOT TARGET AVCODEC::AVCODEC)
         add_library(AVCODEC::AVCODEC ALIAS PkgConfig::PC_AVCODEC)
     endif()
+    if (NOT AVCODEC_INCLUDE_DIRS)
+        find_path(AVCODEC_INCLUDE_DIRS NAMES libavcodec\avcodec.h)
+    endif()
 else()
     message(FATAL_ERROR "failed.")
 endif()
@@ -25,5 +28,6 @@ find_package_handle_standard_args(AVCODEC
     FOUND_VAR AVCODEC_FOUND
     REQUIRED_VARS
         AVCODEC_LIBRARYS
+        AVCODEC_INCLUDE_DIRS
     VERSION_VAR AVCODEC_VERSION
 )
