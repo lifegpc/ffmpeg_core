@@ -207,9 +207,9 @@ def main(prog: List[str], output: str = None, adds: List[str] = None,
 
 p = ArgumentParser(description='Pack programs into a 7-zip file.')
 p.add_argument('PROG', action='append', help='Program to pack', nargs='*', default=[])
-p.add_argument('-p', '--pdb', action='append', help='Program\'s PDB file to pack', nargs='*', default=[], dest='pdb')
+p.add_argument('-p', '--pdb', action='append', help='Program\'s PDB file to pack', default=[], dest='pdb')
 p.add_argument('-o', '--output', help='Output file', default='programs.7z', dest='output')
-p.add_argument('-a', '--add', action='append', help='Additional files to pack', nargs='*', default=[], dest='add')
+p.add_argument('-a', '--add', action='append', help='Additional files to pack', default=[], dest='add')
 p.add_argument('-s', '--strip', help='Strip before package', default=False, action='store_true', dest='strip')
 p.add_argument('-n', '--num_cpu', help='Number of CPU to use', default=None, type=int, dest='num_cpu')
 
@@ -217,7 +217,7 @@ p.add_argument('-n', '--num_cpu', help='Number of CPU to use', default=None, typ
 if __name__ == '__main__':
     try:
         args = p.parse_args()
-        main(args.PROG[0], args.output, args.add[0], args.pdb[0], args)
+        main(args.PROG[0], args.output, args.add, args.pdb, args)
     except Exception:
         from traceback import print_exc
         from sys import exit
