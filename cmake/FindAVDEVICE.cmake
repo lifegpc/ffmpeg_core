@@ -1,3 +1,4 @@
+cmake_minimum_required(VERSION 3.11)
 find_package(PkgConfig)
 if (PkgConfig_FOUND)
     pkg_check_modules(PC_AVDEVICE QUIET IMPORTED_TARGET GLOBAL libavdevice)
@@ -13,6 +14,12 @@ if (PC_AVDEVICE_FOUND)
     else()
         set(AVDEVICE_INCLUDE_DIRS ${PC_AVDEVICE_INCLUDE_DIRS})
     endif()
+    if (NOT AVDEVICE_INCLUDE_DIRS)
+        find_path(AVDEVICE_INCLUDE_DIRS NAME libavdevice/avdevice.h)
+        if (AVDEVICE_INCLUDE_DIRS)
+            target_include_directories(PkgConfig::PC_AVDEVICE INTERFACE ${AVDEVICE_INCLUDE_DIRS})
+        endif()
+    endif()
     if (NOT TARGET AVDEVICE::AVDEVICE)
         add_library(AVDEVICE::AVDEVICE ALIAS PkgConfig::PC_AVDEVICE)
     endif()
@@ -25,5 +32,6 @@ find_package_handle_standard_args(AVDEVICE
     FOUND_VAR AVDEVICE_FOUND
     REQUIRED_VARS
         AVDEVICE_LIBRARYS
+        AVDEVICE_INCLUDE_DIRS
     VERSION_VAR AVDEVICE_VERSION
 )

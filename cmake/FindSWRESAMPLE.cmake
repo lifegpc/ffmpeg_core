@@ -13,6 +13,12 @@ if (PC_SWRESAMPLE_FOUND)
     else()
         set(SWRESAMPLE_INCLUDE_DIRS ${PC_SWRESAMPLE_INCLUDE_DIRS})
     endif()
+    if (NOT SWRESAMPLE_INCLUDE_DIRS)
+        find_path(SWRESAMPLE_INCLUDE_DIRS NAME libswresample/swresample.h)
+        if (SWRESAMPLE_INCLUDE_DIRS)
+            target_include_directories(PkgConfig::PC_SWRESAMPLE INTERFACE ${SWRESAMPLE_INCLUDE_DIRS})
+        endif()
+    endif()
     if (NOT TARGET SWRESAMPLE::SWRESAMPLE)
         add_library(SWRESAMPLE::SWRESAMPLE ALIAS PkgConfig::PC_SWRESAMPLE)
     endif()
@@ -25,5 +31,6 @@ find_package_handle_standard_args(SWRESAMPLE
     FOUND_VAR SWRESAMPLE_FOUND
     REQUIRED_VARS
         SWRESAMPLE_LIBRARYS
+        SWRESAMPLE_INCLUDE_DIRS
     VERSION_VAR SWRESAMPLE_VERSION
 )
