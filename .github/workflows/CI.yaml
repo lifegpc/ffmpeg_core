@@ -654,3 +654,16 @@ jobs:
       run: |
         COPY /Y scripts\build_ffmpeg_core_msvc-x64-debug.bat || exit 1
         CALL build_ffmpeg_core_msvc-x64-debug.bat || exit 1
+    - name: Download lld-rust
+      run: |
+        COPY /Y scripts\download_lld-rust.bat || exit 1
+        download_lld-rust || exit 1
+    - name: Pack programs
+      run: |
+        SET PATH=%CD%\clib\bin;%PATH%
+        python scripts/pack_prog.py -o msvc-x64-debug.7z %CD%\lib\bin\ffmpeg_core.dll || exit 1
+    - name: Upload files
+      uses: actions/upload-artifact@v3
+      with:
+        name: msvc-x64-debug
+        path: ./msvc-x64-debug.7z
