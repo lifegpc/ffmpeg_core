@@ -217,7 +217,7 @@ p.add_argument('-n', '--num_cpu', help='Number of CPU to use', default=None, typ
 if __name__ == '__main__':
     try:
         args = p.parse_args()
-        main(args.PROG[0], args.output, args.add, args.pdb, args)
+        main(args.PROG[0], args.output, args.add[0], args.pdb[0], args)
     except Exception:
         from traceback import print_exc
         from sys import exit
