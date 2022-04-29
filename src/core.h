@@ -159,6 +159,8 @@ WASAPIHandle* wasapi;
 PositionDataList* position_data;
 /// 用来确保WASAPI缓冲区信同时被读取、修改以及确保WASAPI存在
 HANDLE mutex3;
+/// 最近一次尝试重新初始化WASAPI时间
+FILETIME wasapi_last_tried;
 #endif
 /// SDL是否被初始化
 unsigned char sdl_initialized : 1;
@@ -196,6 +198,8 @@ unsigned char is_use_wasapi : 1;
 unsigned char wasapi_initialized : 1;
 /// 当前handle是否启用独占模式
 unsigned char is_exclusive: 1;
+/// 需要重新初始化WASAPI
+unsigned char need_reinit_wasapi: 1;
 #endif
 } MusicHandle;
 typedef struct MusicInfoHandle {

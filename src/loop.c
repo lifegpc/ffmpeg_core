@@ -161,6 +161,26 @@ DWORD WINAPI event_loop(LPVOID handle) {
     while (1) {
         doing = 0;
         if (h->stoping) break;
+#if HAVE_WASAPI
+        if (!h->is_reopen && h->need_reinit_wasapi) {
+            FILETIME now;
+            GetSystemTimePreciseAsFileTime(&now);
+            if (ft2ts(now) - ft2ts(h->wasapi_last_tried) > 10000000) {
+                int re = reinit_wasapi_output(h);
+                if (re) {
+                    av_log(NULL, AV_LOG_VERBOSE, "Reinitializ WASAPI failed: %i.\n", re);
+                    GetSystemTimePreciseAsFileTime(&h->wasapi_last_tried);
+                } else {
+                    h->need_reinit_wasapi = 0;
+                    // 需要重新初始化filters以适应可能的输出格式变化
+                    h->need_reinit_filters = 1;
+                    if (h->is_playing) play_WASAPI_device(h, 1);
+                }
+                doing = 1;
+            }
+            goto end;
+        }
+#endif
         if (basic_event_handle(h)) {
             doing = 1;
             goto end;
@@ -249,6 +269,11 @@ DWORD WINAPI filter_loop(LPVOID handle) {
     while (1) {
         doing = 0;
         if (h->stoping) break;
+#if HAVE_WASAPI
+        if (h->need_reinit_wasapi) {
+            goto end;
+        }
+#endif
         if (h->graph && !h->is_easy_filters) {
             int re = add_data_to_filters_buffer(h);
             if (re) {
@@ -258,6 +283,7 @@ DWORD WINAPI filter_loop(LPVOID handle) {
             }
             doing = 1;
         }
+end:
         if (!doing) {
             Sleep(10);
         }

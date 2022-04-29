@@ -21,6 +21,8 @@ HANDLE eve;
 int64_t frame_pts;
 /// 上一次padding（用来大致计算）
 uint32_t last_padding;
+/// 目标设备的名字
+wchar_t* device_name;
 unsigned char is_playing : 1;
 unsigned char have_err : 1;
 unsigned char stoping : 1;
@@ -84,6 +86,7 @@ void play_WASAPI_device(MusicHandle* handle, int play);
  * @return 缓冲区长度（单位：100ns）
 */
 REFERENCE_TIME get_WASAPI_buffer_time(REFERENCE_TIME min_device_preiord, int min_buffer_time);
+int reinit_wasapi_output(MusicHandle* handle);
 #if __cplusplus
 }
 #endif

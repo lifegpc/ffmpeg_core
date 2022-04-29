@@ -6,6 +6,12 @@
 
 int ffmpeg_core_get_fft_data(MusicHandle* handle, float* fft_data, int len) {
     if (!handle || !fft_data) return FFMPEG_CORE_ERR_NULLPTR;
+#if HAVE_WASAPI
+    if (handle->need_reinit_wasapi) {
+        memset(fft_data, 0, sizeof(float) * len);
+        return FFMPEG_CORE_ERR_OK;
+    }
+#endif
     if (len > FFT_SAMPLE / 2) return FFMPEG_CORE_ERR_TOO_BIG_FFT_DATA_LEN;
     int cal_samples = FFT_SAMPLE;
     AVFrame* f = av_frame_alloc(), * f2 = NULL;

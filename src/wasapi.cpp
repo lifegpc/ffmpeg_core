@@ -74,6 +74,7 @@ void free_WASAPIHandle(WASAPIHandle* handle) {
     }
     comfree(handle->render);
     comfree(handle->client);
+    if (handle->device_name) free(handle->device_name);
     free(handle);
 }
 
@@ -269,7 +270,7 @@ int get_Device(const wchar_t* name, IMMDevice** result) {
     return FFMPEG_CORE_ERR_OK;
 }
 
-int open_WASAPI_device(MusicHandle* handle, const wchar_t* name) {
+int open_WASAPI_device(MusicHandle* handle, const wchar_t* name, bool allow_change_device) {
     if (!handle) return FFMPEG_CORE_ERR_NULLPTR;
     handle->wasapi = (WASAPIHandle*)malloc(sizeof(WASAPIHandle));
     if (!handle->wasapi) return FFMPEG_CORE_ERR_OOM;
@@ -285,9 +286,23 @@ int open_WASAPI_device(MusicHandle* handle, const wchar_t* name) {
     if ((re = get_Device(name, &ori))) {
         goto end;
     }
-    if (!ori) {
+    if (!ori && !allow_change_device) {
         re = FFMPEG_CORE_ERR_WASAPI_DEVICE_NOT_FOUND;
         goto end;
+    } else if (!ori) {
+        if ((re = get_Device(nullptr, &ori))) {
+            goto end;
+        }
+        if (!ori) {
+            re = FFMPEG_CORE_ERR_WASAPI_DEVICE_NOT_FOUND;
+            goto end;
+        }
+    }
+    if (name) {
+        if (!cpp2c::string2char(name, handle->wasapi->device_name)) {
+            re = FFMPEG_CORE_ERR_OOM;
+            goto end;
+        }
     }
     if ((re = copy_IMMDevice(ori, &device))) {
         goto end;
@@ -486,6 +501,10 @@ end:
     return re;
 }
 
+int open_WASAPI_device(MusicHandle* handle, const wchar_t* name) {
+    return open_WASAPI_device(handle, name, false);
+}
+
 void close_WASAPI_device(MusicHandle* handle) {
     if (!handle || !handle->wasapi) return;
     DWORD re = WaitForSingleObject(handle->mutex3, 3000);
@@ -652,6 +671,7 @@ end:
 #define DEAL_WASAPI_LOOP_ERROR(expr) if (!SUCCEEDED(expr)) { \
 w->have_err = 1; \
 w->err = hr; \
+if (hr == AUDCLNT_E_DEVICE_INVALIDATED) h->need_reinit_wasapi = 1; \
 goto end; \
 }
 
@@ -671,6 +691,7 @@ DWORD WINAPI wasapi_loop2(LPVOID handle) {
     }
     while (1) {
         if (w->stoping) break;
+        if (w->have_err && w->err == AUDCLNT_E_DEVICE_INVALIDATED) break;
         DEAL_WASAPI_LOOP_ERROR(hr = w->client->GetCurrentPadding(&padding));
         w->last_padding = padding;
         // 缓冲区还剩不到一半或者空余的缓冲区超过0.5s时补充缓冲区
@@ -691,6 +712,10 @@ DWORD WINAPI wasapi_loop2(LPVOID handle) {
             if (!SUCCEEDED(hr = w->render->ReleaseBuffer(count, 0))) {
                 w->have_err = 1;
                 w->err = hr;
+                if (hr == AUDCLNT_E_DEVICE_INVALIDATED) {
+                    h->need_reinit_wasapi = 1;
+                    return FFMPEG_CORE_ERR_OK;
+                }
             }
         }
         data = nullptr;
@@ -710,6 +735,7 @@ DWORD WINAPI wasapi_loop(LPVOID handle) {
     }
     while (1) {
         if (w->stoping) break;
+        if (w->have_err && w->err == AUDCLNT_E_DEVICE_INVALIDATED) break;
         DWORD re = WaitForSingleObject(w->eve, 10);
         if (re == WAIT_TIMEOUT) {
             continue;
@@ -727,6 +753,10 @@ end:
                 if (!SUCCEEDED(hr = w->render->ReleaseBuffer(count, 0))) {
                     w->have_err = 1;
                     w->err = hr;
+                    if (hr == AUDCLNT_E_DEVICE_INVALIDATED) {
+                        h->need_reinit_wasapi = 1;
+                        return FFMPEG_CORE_ERR_OK;
+                    }
                 }
             }
         } else {
@@ -754,4 +784,78 @@ REFERENCE_TIME get_WASAPI_buffer_time(REFERENCE_TIME min_device_preiord, int min
         times++;
     }
     return times * min_device_preiord;
+}
+
+int reinit_wasapi_output(MusicHandle* handle) {
+    if (!handle) return FFMPEG_CORE_ERR_NULLPTR;
+    wchar_t* name = handle->wasapi ? handle->wasapi->device_name : nullptr;
+    int re = FFMPEG_CORE_ERR_OK;
+    close_WASAPI_device(handle);
+    // 确保设备变化时能变化
+    // TODO: 实现监听设备变化以获取更好的性能
+    if (handle->wasapi_initialized) {
+        uninit_WASAPI();
+        handle->wasapi_initialized = 0;
+    }
+    if (handle->buffer) {
+        av_audio_fifo_free(handle->buffer);
+        handle->buffer = nullptr;
+    }
+    if (handle->filters_buffer) {
+        av_audio_fifo_free(handle->filters_buffer);
+        handle->filters_buffer = nullptr;
+    }
+    if (handle->swrac) swr_free(&handle->swrac);
+    if ((re = init_WASAPI())) {
+        goto end;
+    }
+    handle->wasapi_initialized = 1;
+    if ((re = open_WASAPI_device(handle, name, true))) {
+        goto end;
+    }
+#if NEW_CHANNEL_LAYOUT
+    if ((re = swr_alloc_set_opts2(&handle->swrac, &handle->output_channel_layout, handle->target_format, handle->sdl_spec.freq, &handle->decoder->ch_layout, handle->decoder->sample_fmt, handle->decoder->sample_rate, 0, NULL))) {
+        goto end;
+    }
+#else
+    handle->swrac = swr_alloc_set_opts(NULL, handle->output_channel_layout, handle->target_format, handle->sdl_spec.freq, handle->decoder->channel_layout, handle->decoder->sample_fmt, handle->decoder->sample_rate, 0, NULL);
+#endif
+    if (!handle->swrac) {
+        av_log(NULL, AV_LOG_FATAL, "Failed to allocate resample context.\n");
+        re = FFMPEG_CORE_ERR_OOM;
+        goto end;
+    }
+    if ((re = swr_init(handle->swrac)) < 0) {
+        goto end;
+    }
+    if (!(handle->buffer = av_audio_fifo_alloc(handle->target_format, handle->sdl_spec.channels, 1))) {
+        av_log(NULL, AV_LOG_FATAL, "Failed to allocate buffer.\n");
+        re = FFMPEG_CORE_ERR_OOM;
+        goto end;
+    }
+    handle->filters_buffer = av_audio_fifo_alloc(handle->target_format, handle->sdl_spec.channels, 1);
+    if (!handle->filters_buffer) {
+        re = FFMPEG_CORE_ERR_OOM;
+        av_log(NULL, AV_LOG_FATAL, "Failed to allocate buffer for filters.\n");
+        goto end;
+    }
+    if (name) free(name);
+    return re;
+end:
+    close_WASAPI_device(handle);
+    if (handle->wasapi_initialized) {
+        uninit_WASAPI();
+        handle->wasapi_initialized = 0;
+    }
+    if (handle->buffer) {
+        av_audio_fifo_free(handle->buffer);
+        handle->buffer = nullptr;
+    }
+    if (handle->filters_buffer) {
+        av_audio_fifo_free(handle->filters_buffer);
+        handle->filters_buffer = nullptr;
+    }
+    if (handle->swrac) swr_free(&handle->swrac);
+    if (name) free(name);
+    return re;
 }
