@@ -788,7 +788,7 @@ REFERENCE_TIME get_WASAPI_buffer_time(REFERENCE_TIME min_device_preiord, int min
 
 int reinit_wasapi_output(MusicHandle* handle) {
     if (!handle) return FFMPEG_CORE_ERR_NULLPTR;
-    wchar_t* name = handle->wasapi ? handle->wasapi->device_name : nullptr;
+    std::wstring name = handle->wasapi ? std::wstring(handle->wasapi->device_name) : std::wstring();
     int re = FFMPEG_CORE_ERR_OK;
     close_WASAPI_device(handle);
     // 确保设备变化时能变化
@@ -810,7 +810,7 @@ int reinit_wasapi_output(MusicHandle* handle) {
         goto end;
     }
     handle->wasapi_initialized = 1;
-    if ((re = open_WASAPI_device(handle, name, true))) {
+    if ((re = open_WASAPI_device(handle, name.empty() ? nullptr : name.c_str(), true))) {
         goto end;
     }
 #if NEW_CHANNEL_LAYOUT
@@ -839,7 +839,6 @@ int reinit_wasapi_output(MusicHandle* handle) {
         av_log(NULL, AV_LOG_FATAL, "Failed to allocate buffer for filters.\n");
         goto end;
     }
-    if (name) free(name);
     return re;
 end:
     close_WASAPI_device(handle);
@@ -856,6 +855,5 @@ end:
         handle->filters_buffer = nullptr;
     }
     if (handle->swrac) swr_free(&handle->swrac);
-    if (name) free(name);
     return re;
 }
