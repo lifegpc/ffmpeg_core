@@ -788,7 +788,7 @@ REFERENCE_TIME get_WASAPI_buffer_time(REFERENCE_TIME min_device_preiord, int min
 
 int reinit_wasapi_output(MusicHandle* handle) {
     if (!handle) return FFMPEG_CORE_ERR_NULLPTR;
-    std::wstring name = handle->wasapi ? std::wstring(handle->wasapi->device_name) : std::wstring();
+    std::wstring name = handle->wasapi && handle->wasapi->device_name ? std::wstring(handle->wasapi->device_name) : std::wstring();
     int re = FFMPEG_CORE_ERR_OK;
     close_WASAPI_device(handle);
     // 确保设备变化时能变化
