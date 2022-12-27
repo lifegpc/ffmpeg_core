@@ -8,7 +8,7 @@ jobs:
         shell: msys2 {0}
     steps:
     - name: Check Out
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
       with:
         fetch-depth: 0
         submodules: true
@@ -38,7 +38,7 @@ jobs:
         python get_cache_key.py mingw-x64 SDL2 ffmpeg || exit 1
     - name: Cache
       id: cache
-      uses: actions/cache@v2
+      uses: actions/cache@v3
       with:
         path: clib/
         key: mingw-x64-debug-${{ steps.cache_key.outputs.cache_key }}
@@ -79,7 +79,7 @@ jobs:
         shell: msys2 {0}
     steps:
     - name: Check Out
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
       with:
         fetch-depth: 0
         submodules: true
@@ -109,7 +109,7 @@ jobs:
         python get_cache_key.py mingw-x64 SDL2 ffmpeg || exit 1
     - name: Cache
       id: cache
-      uses: actions/cache@v2
+      uses: actions/cache@v3
       with:
         path: clib/
         key: mingw-x64-wasapi-debug-${{ steps.cache_key.outputs.cache_key }}
@@ -150,7 +150,7 @@ jobs:
         shell: msys2 {0}
     steps:
     - name: Check Out
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
       with:
         fetch-depth: 0
         submodules: true
@@ -180,7 +180,7 @@ jobs:
         python get_cache_key.py mingw-x64 SDL2 ffmpeg || exit 1
     - name: Cache
       id: cache
-      uses: actions/cache@v2
+      uses: actions/cache@v3
       with:
         path: clib/
         key: mingw-x64-release-${{ steps.cache_key.outputs.cache_key }}
@@ -221,7 +221,7 @@ jobs:
         shell: msys2 {0}
     steps:
     - name: Check Out
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
       with:
         fetch-depth: 0
         submodules: true
@@ -251,7 +251,7 @@ jobs:
         python get_cache_key.py mingw-x64 SDL2 ffmpeg || exit 1
     - name: Cache
       id: cache
-      uses: actions/cache@v2
+      uses: actions/cache@v3
       with:
         path: clib/
         key: mingw-x64-wasapi-release-${{ steps.cache_key.outputs.cache_key }}
@@ -292,7 +292,7 @@ jobs:
         shell: msys2 {0}
     steps:
     - name: Check Out
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
       with:
         fetch-depth: 0
         submodules: true
@@ -322,7 +322,7 @@ jobs:
         python get_cache_key.py mingw-x64 SDL2 ffmpeg || exit 1
     - name: Cache
       id: cache
-      uses: actions/cache@v2
+      uses: actions/cache@v3
       with:
         path: clib/
         key: mingw-x86-debug-${{ steps.cache_key.outputs.cache_key }}
@@ -363,7 +363,7 @@ jobs:
         shell: msys2 {0}
     steps:
     - name: Check Out
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
       with:
         fetch-depth: 0
         submodules: true
@@ -393,7 +393,7 @@ jobs:
         python get_cache_key.py mingw-x64 SDL2 ffmpeg || exit 1
     - name: Cache
       id: cache
-      uses: actions/cache@v2
+      uses: actions/cache@v3
       with:
         path: clib/
         key: mingw-x86-wasapi-debug-${{ steps.cache_key.outputs.cache_key }}
@@ -434,7 +434,7 @@ jobs:
         shell: msys2 {0}
     steps:
     - name: Check Out
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
       with:
         fetch-depth: 0
         submodules: true
@@ -464,7 +464,7 @@ jobs:
         python get_cache_key.py mingw-x64 SDL2 ffmpeg || exit 1
     - name: Cache
       id: cache
-      uses: actions/cache@v2
+      uses: actions/cache@v3
       with:
         path: clib/
         key: mingw-x86-release-${{ steps.cache_key.outputs.cache_key }}
@@ -505,7 +505,7 @@ jobs:
         shell: msys2 {0}
     steps:
     - name: Check Out
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
       with:
         fetch-depth: 0
         submodules: true
@@ -535,7 +535,7 @@ jobs:
         python get_cache_key.py mingw-x64 SDL2 ffmpeg || exit 1
     - name: Cache
       id: cache
-      uses: actions/cache@v2
+      uses: actions/cache@v3
       with:
         path: clib/
         key: mingw-x86-wasapi-release-${{ steps.cache_key.outputs.cache_key }}
@@ -576,7 +576,7 @@ jobs:
         shell: cmd
     steps:
     - name: Check Out
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
       with:
         fetch-depth: 0
         submodules: true
@@ -588,7 +588,7 @@ jobs:
         python get_cache_key.py msvc-x64 zlib bzlib gnutls cdio cdio-paranoia pkgconf SDL2 ffmpeg || exit 1
     - name: Cache
       id: cache
-      uses: actions/cache@v2
+      uses: actions/cache@v3
       with:
         path: clib/
         key: msvc-x64-debug-${{ steps.cache_key.outputs.cache_key }}
