@@ -10,9 +10,9 @@ IF NOT EXIST cbuild (
     MD cbuild || EXIT /B 1
 )
 CD cbuild || EXIT /B 1
-CALL %DOWNLOAD_RESOURCE% -o "zlib-1.2.12.tar.gz" "https://www.zlib.net/zlib-1.2.12.tar.gz" || EXIT /B %ERRORLEVEL%
-tar -xzvf "zlib-1.2.12.tar.gz" || EXIT /B %ERRORLEVEL%
-CD zlib-1.2.12 || EXIT /B 1
+CALL %DOWNLOAD_RESOURCE% -o "zlib-1.2.13.tar.gz" "https://zlib.net/zlib-1.2.13.tar.gz" || EXIT /B %ERRORLEVEL%
+tar -xzvf "zlib-1.2.13.tar.gz" || EXIT /B %ERRORLEVEL%
+CD zlib-1.2.13 || EXIT /B 1
 IF NOT EXIST build (
     MD build || EXIT /B 1
 )
