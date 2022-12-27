@@ -177,7 +177,7 @@ void ffmpeg_core_dump_library_version(int use_av_log, int av_log_level) {
     PRINTF("Other thirdparty libraries: \n");
     SDL_version sv;
     SDL_GetVersion(&sv);
-    PRINTF("SDL2          %3u.%3u.%3u\n", sv.major, sv.minor, sv.patch);
+    PRINTF("SDL          %3u.%3u.%3u\n", sv.major, sv.minor, sv.patch);
 }
 
 #define QUICK_PRINT_CONF(f, name) if (basic != f()) { \

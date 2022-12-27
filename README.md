@@ -15,7 +15,7 @@
     * `libavdevice`
     * `libavfilter`
     * `libswresample`
-* `SDL2` 库
+* `SDL2` / `SDL3` 库
 
 FFMPEG库采用pkg-config来寻找，请确保正确的设置了环境变量`PKG_CONFIG_PATH`和CMAKE选项`CMAKE_PREFIX_PATH`
 ### FFMPEG 库要求

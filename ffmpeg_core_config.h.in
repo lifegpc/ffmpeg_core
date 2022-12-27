@@ -1,1 +1,2 @@
 #cmakedefine HAVE_WASAPI @HAVE_WASAPI@
+#cmakedefine HAVE_SDL3 @HAVE_SDL3@

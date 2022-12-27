@@ -18,7 +18,11 @@ extern "C" {
 #include "libavfilter/buffersink.h"
 #include "libavfilter/buffersrc.h"
 #include "libswresample/swresample.h"
+#if HAVE_SDL3
+#include "SDL3/SDL.h"
+#else
 #include "SDL2/SDL.h"
+#endif
 #include <Windows.h>
 #include "c_linked_list.h"
 #include "urlparse.h"
