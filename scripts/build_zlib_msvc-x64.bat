@@ -1,8 +1,6 @@
 @ECHO OFF
 SETLOCAL
 SET TOP=%CD%
-SET SCRIPTS_DIR=%CD%\scripts
-SET DOWNLOAD_RESOURCE=%SCRIPTS_DIR%\download_resource.bat
 SET PREFIX=%CD%\clib
 SET PKG_CONFIG_DIR=%PREFIX%\lib\pkgconfig
 SET PATCH_DIR=%CD%\patch\zlib-msvc
@@ -10,9 +8,8 @@ IF NOT EXIST cbuild (
     MD cbuild || EXIT /B 1
 )
 CD cbuild || EXIT /B 1
-CALL %DOWNLOAD_RESOURCE% -o "zlib-1.2.13.tar.gz" "https://zlib.net/zlib-1.2.13.tar.gz" || EXIT /B %ERRORLEVEL%
-tar -xzvf "zlib-1.2.13.tar.gz" || EXIT /B %ERRORLEVEL%
-CD zlib-1.2.13 || EXIT /B 1
+git clone --depth 1 "https://github.com/lifegpc/zlib" || EXIT /B %ERRORLEVEL%
+CD zlib || EXIT /B 1
 IF NOT EXIST build (
     MD build || EXIT /B 1
 )
