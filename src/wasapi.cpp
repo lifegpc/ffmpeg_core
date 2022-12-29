@@ -75,6 +75,7 @@ void free_WASAPIHandle(WASAPIHandle* handle) {
     comfree(handle->render);
     comfree(handle->client);
     if (handle->device_name) free(handle->device_name);
+    if (handle->eve) CloseHandle(handle->eve);
     free(handle);
 }
 

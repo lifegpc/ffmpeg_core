@@ -97,6 +97,11 @@ void free_music_handle(MusicHandle* handle) {
     if (handle->cda) free(handle->cda);
     if (handle->url) free(handle->url);
     if (handle->parsed_url) free_url_parse_result(handle->parsed_url);
+    if (handle->mutex) CloseHandle(handle->mutex);
+    if (handle->mutex2) CloseHandle(handle->mutex2);
+#if HAVE_WASAPI
+    if (handle->mutex3) CloseHandle(handle->mutex3);
+#endif
     free(handle);
 }
 
