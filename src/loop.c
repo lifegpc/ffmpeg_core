@@ -12,6 +12,8 @@
 #endif
 #include "time_util.h"
 
+#define ft2ts(t) (((uint64_t)t.dwHighDateTime << 32) | (uint64_t)t.dwLowDateTime)
+
 int seek_to_pos(MusicHandle* handle) {
     if (!handle) return FFMPEG_CORE_ERR_NULLPTR;
     int re = FFMPEG_CORE_ERR_OK;
