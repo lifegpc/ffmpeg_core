@@ -17,7 +17,11 @@ int ffmpeg_core_get_fft_data(MusicHandle* handle, float* fft_data, int len) {
     AVFrame* f = av_frame_alloc(), * f2 = NULL;
     RDFTContext* context = NULL;
     SwrContext* swr = NULL;
+#if _WIN32
     DWORD re = 0;
+#else
+    int re = 0;
+#endif
     int r = FFMPEG_CORE_ERR_OK;
     int nbits = log2(cal_samples);
     int total_samples = FFT_SAMPLE * 10;
@@ -45,8 +49,13 @@ int ffmpeg_core_get_fft_data(MusicHandle* handle, float* fft_data, int len) {
         memset(fft_data, 0, sizeof(float) * len);
         goto end;
     }
+#if _WIN32
     re = WaitForSingleObject(handle->mutex, INFINITE);
     if (re != WAIT_OBJECT_0) {
+#else
+    re = pthread_mutex_lock(&handle->mutex);
+    if (re != 0) {
+#endif
         r = FFMPEG_CORE_ERR_WAIT_MUTEX_FAILED;
         memset(fft_data, 0, sizeof(float) * len);
         goto end;

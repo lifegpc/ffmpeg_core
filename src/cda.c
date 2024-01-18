@@ -7,6 +7,7 @@
 #include "cstr_util.h"
 #include "err.h"
 
+#if _WIN32
 #ifndef _O_BINARY
 #define _O_BINARY 0x8000
 #endif
@@ -18,6 +19,11 @@
 #ifndef _S_IREAD
 #define _S_IREAD 0x100
 #endif
+#else
+#define _O_BINARY 0
+#define _SH_DENYWR 0
+#define _S_IREAD 0
+#endif
 
 #define CDA_FILE_SIZE 44
 #define u8_buf(buf, offset) ((const uint8_t*)buf + offset)
@@ -26,11 +32,13 @@ int is_cda_file(const char* url) {
     if (!url) return 0;
     char* dir = fileop_dirname(url);
     if (!dir) return 0;
+#if _WIN32
     // 判断是否为根盘符
     if (!fileop_isdrive(dir)) {
         free(dir);
         return 0;
     }
+#endif
     free(dir);
     char* l = strrchr(url, '.');
     if (!l || cstr_stricmp(l, ".cda")) {
@@ -70,7 +78,7 @@ int read_cda_file(MusicHandle* handle, const char* url) {
     }
     memset(handle->cda, 0, sizeof(CDAData));
     if ((num_read = fread(buf, 1, CDA_FILE_SIZE, f)) < CDA_FILE_SIZE) {
-        av_log(NULL, AV_LOG_FATAL, "Failed to read file \"%s\": %d bytes is needed, but only bytes was readed.\n", url, CDA_FILE_SIZE, num_read);
+        av_log(NULL, AV_LOG_FATAL, "Failed to read file \"%s\": %d bytes is needed, but only %d bytes was readed.\n", url, CDA_FILE_SIZE, num_read);
         re = FFMPEG_CORE_ERR_FAILED_READ_FILE;
         goto end;
     }
@@ -129,7 +137,7 @@ int read_cda_file2(MusicInfoHandle* handle, const char* url) {
     }
     memset(handle->cda, 0, sizeof(CDAData));
     if ((num_read = fread(buf, 1, CDA_FILE_SIZE, f)) < CDA_FILE_SIZE) {
-        av_log(NULL, AV_LOG_FATAL, "Failed to read file \"%s\": %d bytes is needed, but only bytes was readed.\n", url, CDA_FILE_SIZE, num_read);
+        av_log(NULL, AV_LOG_FATAL, "Failed to read file \"%s\": %d bytes is needed, but only %d bytes was readed.\n", url, CDA_FILE_SIZE, num_read);
         re = FFMPEG_CORE_ERR_FAILED_READ_FILE;
         goto end;
     }

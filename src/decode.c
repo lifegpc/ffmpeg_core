@@ -172,7 +172,11 @@ int convert_samples_and_add_to_fifo(MusicHandle* handle, AVFrame* frame, char* w
     int64_t frames = av_rescale_q_rnd(samples, base, target, AV_ROUND_UP | AV_ROUND_PASS_MINMAX);
     /// 实际输出样本数
     int converted_samples = 0;
+#if _WIN32
     DWORD res = 0;
+#else
+    int res = 0;
+#endif
     if (!(converted_input_samples = malloc(sizeof(void*) * handle->sdl_spec.channels))) {
         re = FFMPEG_CORE_ERR_OOM;
         goto end;
@@ -187,8 +191,13 @@ int convert_samples_and_add_to_fifo(MusicHandle* handle, AVFrame* frame, char* w
         re = converted_samples;
         goto end;
     }
+#if _WIN32
     res = WaitForSingleObject(handle->mutex, INFINITE);
     if (res != WAIT_OBJECT_0) {
+#else
+    res = pthread_mutex_lock(&handle->mutex);
+    if (res != 0) {
+#endif
         re = FFMPEG_CORE_ERR_WAIT_MUTEX_FAILED;
         goto end;
     }

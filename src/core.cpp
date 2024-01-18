@@ -18,6 +18,7 @@
 #include "cstr_util.h"
 #include "ffmpeg_core_version.h"
 #include "ch_layout.h"
+#include "time_util.h"
 
 #if HAVE_WASAPI
 #include "wasapi.h"
@@ -31,8 +32,6 @@
 #define min(a,b) (((a) < (b)) ? (a) : (b))
 #endif
 
-#define ft2ts(t) (((uint64_t)t.dwHighDateTime << 32) | (uint64_t)t.dwLowDateTime)
-
 template <typename T>
 void tfree(T* data) {
     free((void*)data);
@@ -45,6 +44,7 @@ void free_music_handle(MusicHandle* handle) {
     if (handle->wasapi) close_WASAPI_device(handle);
 #endif
     if (handle->thread) {
+#if _WIN32
         DWORD status;
         while (GetExitCodeThread(handle->thread, &status)) {
             if (status == STILL_ACTIVE) {
@@ -55,8 +55,16 @@ void free_music_handle(MusicHandle* handle) {
                 break;
             }
         }
+#else
+        int status = pthread_tryjoin_np(handle->thread, nullptr);
+        if (status == EBUSY) {
+            handle->stoping = 1;
+            pthread_join(handle->thread, nullptr);
+        }
+#endif
     }
     if (handle->filter_thread) {
+#if _WIN32
         DWORD status;
         while (GetExitCodeThread(handle->filter_thread, &status)) {
             if (status == STILL_ACTIVE) {
@@ -67,6 +75,13 @@ void free_music_handle(MusicHandle* handle) {
                 break;
             }
         }
+#else
+        int status = pthread_tryjoin_np(handle->filter_thread, nullptr);
+        if (status == EBUSY) {
+            handle->stoping = 1;
+            pthread_join(handle->filter_thread, nullptr);
+        }
+#endif
     }
     if (handle->graph) {
         avfilter_graph_free(&handle->graph);
@@ -97,8 +112,13 @@ void free_music_handle(MusicHandle* handle) {
     if (handle->cda) free(handle->cda);
     if (handle->url) free(handle->url);
     if (handle->parsed_url) free_url_parse_result(handle->parsed_url);
+#if _WIN32
     if (handle->mutex) CloseHandle(handle->mutex);
     if (handle->mutex2) CloseHandle(handle->mutex2);
+#else
+    pthread_mutex_destroy(&handle->mutex);
+    pthread_mutex_destroy(&handle->mutex2);
+#endif
 #if HAVE_WASAPI
     if (handle->mutex3) CloseHandle(handle->mutex3);
 #endif
@@ -158,10 +178,14 @@ int32_t ffmpeg_core_version() {
     return FFMPEG_CORE_VERSION_INT;
 }
 
+#if HAVE_PRINTF_S
+#define printf printf_s
+#endif
+
 #if _MSC_VER
-#define PRINTF(f, ...) use_av_log ? av_log(NULL, av_log_level, f, __VA_ARGS__) : printf_s(f, __VA_ARGS__)
+#define PRINTF(f, ...) use_av_log ? av_log(NULL, av_log_level, f, __VA_ARGS__) : printf(f, __VA_ARGS__)
 #else
-#define PRINTF(f, ...) if (use_av_log) { av_log(NULL, av_log_level, f, ##__VA_ARGS__); } else { printf_s(f, ##__VA_ARGS__); }
+#define PRINTF(f, ...) if (use_av_log) { av_log(NULL, av_log_level, f, ##__VA_ARGS__); } else { printf(f, ##__VA_ARGS__); }
 #endif
 
 
@@ -201,25 +225,33 @@ void ffmpeg_core_dump_ffmpeg_configuration(int use_av_log, int av_log_level) {
 #undef QUICK_PRINT_CONF
 #undef PRINTF
 
-int ffmpeg_core_open(const wchar_t* url, MusicHandle** handle) {
+int ffmpeg_core_open(const CORE_CHAR* url, MusicHandle** handle) {
     return ffmpeg_core_open3(url, handle, nullptr, nullptr);
 }
 
-int ffmpeg_core_open2(const wchar_t* url, MusicHandle** h, FfmpegCoreSettings* s) {
+int ffmpeg_core_open2(const CORE_CHAR* url, MusicHandle** h, FfmpegCoreSettings* s) {
     return ffmpeg_core_open3(url, h, s, nullptr);
 }
 
-int ffmpeg_core_open3(const wchar_t* url, MusicHandle** h, FfmpegCoreSettings* s, const wchar_t* device) {
+int ffmpeg_core_open3(const CORE_CHAR* url, MusicHandle** h, FfmpegCoreSettings* s, const CORE_CHAR* device) {
     if (!url || !h) return FFMPEG_CORE_ERR_NULLPTR;
     std::string u;
+#if _WIN32
     // 将文件名转为UTF-8，ffmpeg API处理的都是UTF-8文件名
     if (!wchar_util::wstr_to_str(u, url, CP_UTF8)) {
         return FFMPEG_CORE_ERR_INVAILD_NAME;
     }
+#else
+    u = url;
+#endif
     std::string d;
+#if _WIN32
     if (device && !wchar_util::wstr_to_str(d, device, CP_UTF8)) {
         return FFMPEG_CORE_ERR_INVAILD_NAME;
     }
+#else
+    if (device) d = device;
+#endif
 #if NDEBUG
     // 设置ffmpeg日志级别为Error
     av_log_set_level(AV_LOG_ERROR);
@@ -233,6 +265,10 @@ int ffmpeg_core_open3(const wchar_t* url, MusicHandle** h, FfmpegCoreSettings* s
         return FFMPEG_CORE_ERR_OOM;
     }
     memset(handle, 0, sizeof(MusicHandle));
+#if !_WIN32
+    pthread_mutex_init(&handle->mutex, nullptr);
+    pthread_mutex_init(&handle->mutex2, nullptr);
+#endif
     if (s) {
         handle->s = s;
     } else {
@@ -312,6 +348,7 @@ int ffmpeg_core_open3(const wchar_t* url, MusicHandle** h, FfmpegCoreSettings* s
         av_log(NULL, AV_LOG_FATAL, "Failed to allocate buffer for filters.\n");
         goto end;
     }
+#if _WIN32
     handle->mutex = CreateMutexW(nullptr, FALSE, nullptr);
     if (!handle->mutex) {
         re = FFMPEG_CORE_ERR_FAILED_CREATE_MUTEX;
@@ -332,6 +369,16 @@ int ffmpeg_core_open3(const wchar_t* url, MusicHandle** h, FfmpegCoreSettings* s
         re = FFMPEG_CORE_ERR_FAILED_CREATE_THREAD;
         goto end;
     }
+#else
+    if (pthread_create(&handle->thread, nullptr, event_loop, handle)) {
+        re = FFMPEG_CORE_ERR_FAILED_CREATE_THREAD;
+        goto end;
+    }
+    if (pthread_create(&handle->filter_thread, nullptr, filter_loop, handle)) {
+        re = FFMPEG_CORE_ERR_FAILED_CREATE_THREAD;
+        goto end;
+    }
+#endif
     *h = handle;
     return re;
 end:
@@ -339,13 +386,17 @@ end:
     return re;
 }
 
-int ffmpeg_core_info_open(const wchar_t* url, MusicInfoHandle** handle) {
+int ffmpeg_core_info_open(const CORE_CHAR* url, MusicInfoHandle** handle) {
     if (!url || !handle) return FFMPEG_CORE_ERR_NULLPTR;
     std::string u;
+#if _WIN32
     // 将文件名转为UTF-8，ffmpeg API处理的都是UTF-8文件名
     if (!wchar_util::wstr_to_str(u, url, CP_UTF8)) {
         return FFMPEG_CORE_ERR_INVAILD_NAME;
     }
+#else
+    u = url;
+#endif
 #if NDEBUG
     // 设置ffmpeg日志级别为Error
     av_log_set_level(AV_LOG_ERROR);
@@ -466,9 +517,17 @@ int ffmpeg_core_info_get_freq(MusicInfoHandle* handle) {
 
 int ffmpeg_core_seek(MusicHandle* handle, int64_t time) {
     if (!handle) return FFMPEG_CORE_ERR_NULLPTR;
-    FILETIME st, et;
-    GetSystemTimePreciseAsFileTime(&st);
+    size_t st, et;
+    st = time_util::time_ns();
+#if _WIN32
     DWORD re = WaitForSingleObject(handle->mutex, handle->s->max_wait_time);
+#else
+    size_t tmp = st + handle->s->max_wait_time * 1000000;
+    struct timespec ts;
+    ts.tv_sec = tmp / 1000000000;
+    ts.tv_nsec = tmp % 1000000000;
+    int re = pthread_mutex_timedlock(&handle->mutex, &ts);
+#endif
     if (re == WAIT_OBJECT_0) {
         handle->is_seek = 1;
         handle->seek_pos = time;
@@ -488,9 +547,9 @@ int ffmpeg_core_seek(MusicHandle* handle, int64_t time) {
     ReleaseMutex(handle->mutex);
     while (1) {
         if (!handle->is_seek) break;
-        GetSystemTimePreciseAsFileTime(&et);
-        if ((ft2ts(et) - ft2ts(st)) >= ((uint64_t)handle->s->max_wait_time * 10000)) return FFMPEG_CORE_ERR_WAIT_TIMEOUT;
-        Sleep(10);
+        et = time_util::time_ns();
+        if ((et - st) >= ((size_t)handle->s->max_wait_time * 1000000)) return FFMPEG_CORE_ERR_WAIT_TIMEOUT;
+        time_util::mssleep(10);
     }
     return handle->have_err ? handle->err : FFMPEG_CORE_ERR_OK;
 }
@@ -524,6 +583,7 @@ int64_t ffmpeg_core_info_get_bitrate(MusicInfoHandle* handle) {
     return 0;
 }
 
+#if _WIN32
 std::wstring get_metadata_str(AVDictionary* dict, const char* key, int flags) {
     auto re = av_dict_get(dict, key, nullptr, flags);
     if (!re || !re->value) return L"";
@@ -537,13 +597,20 @@ std::wstring get_metadata_str(AVDictionary* dict, const char* key, int flags) {
     }
     return L"";
 }
+#else
+std::string get_metadata_str(AVDictionary* dict, const char* key, int flags) {
+    auto re = av_dict_get(dict, key, nullptr, flags);
+    if (!re || !re->value) return "";
+    return std::string(re->value);
+}
+#endif
 
-wchar_t* ffmpeg_core_get_metadata(MusicHandle* handle, const char* key) {
+CORE_CHAR* ffmpeg_core_get_metadata(MusicHandle* handle, const char* key) {
     if (!handle || !key) return nullptr;
     if (handle->fmt && handle->fmt->metadata) {
         auto re = get_metadata_str(handle->fmt->metadata, key, 0);
         if (!re.empty()) {
-            wchar_t* r = nullptr;
+            CORE_CHAR* r = nullptr;
             if (cpp2c::string2char(re, r)) {
                 return r;
             }
@@ -552,7 +619,7 @@ wchar_t* ffmpeg_core_get_metadata(MusicHandle* handle, const char* key) {
     if (handle->is && handle->is->metadata) {
         auto re = get_metadata_str(handle->is->metadata, key, 0);
         if (!re.empty()) {
-            wchar_t* r = nullptr;
+            CORE_CHAR* r = nullptr;
             if (cpp2c::string2char(re, r)) {
                 return r;
             }
@@ -561,12 +628,12 @@ wchar_t* ffmpeg_core_get_metadata(MusicHandle* handle, const char* key) {
     return nullptr;
 }
 
-wchar_t* ffmpeg_core_info_get_metadata(MusicInfoHandle* handle, const char* key) {
+CORE_CHAR* ffmpeg_core_info_get_metadata(MusicInfoHandle* handle, const char* key) {
     if (!handle || !key) return nullptr;
     if (handle->fmt && handle->fmt->metadata) {
         auto re = get_metadata_str(handle->fmt->metadata, key, 0);
         if (!re.empty()) {
-            wchar_t* r = nullptr;
+            CORE_CHAR* r = nullptr;
             if (cpp2c::string2char(re, r)) {
                 return r;
             }
@@ -575,7 +642,7 @@ wchar_t* ffmpeg_core_info_get_metadata(MusicInfoHandle* handle, const char* key)
     if (handle->is && handle->is->metadata) {
         auto re = get_metadata_str(handle->is->metadata, key, 0);
         if (!re.empty()) {
-            wchar_t* r = nullptr;
+            CORE_CHAR* r = nullptr;
             if (cpp2c::string2char(re, r)) {
                 return r;
             }
@@ -586,9 +653,17 @@ wchar_t* ffmpeg_core_info_get_metadata(MusicInfoHandle* handle, const char* key)
 
 int send_reinit_filters(MusicHandle* handle) {
     if (!handle) return FFMPEG_CORE_ERR_NULLPTR;
-    FILETIME st, et;
-    GetSystemTimePreciseAsFileTime(&st);
+    size_t st, et;
+    st = time_util::time_ns();
+#if _WIN32
     DWORD re = WaitForSingleObject(handle->mutex, handle->s->max_wait_time);
+#else
+    size_t tmp = st + handle->s->max_wait_time * 1000000;
+    struct timespec ts;
+    ts.tv_sec = tmp / 1000000000;
+    ts.tv_nsec = tmp % 1000000000;
+    int re = pthread_mutex_timedlock(&handle->mutex, &ts);
+#endif
     if (re == WAIT_OBJECT_0) {
         handle->need_reinit_filters = 1;
     } else if (re == WAIT_TIMEOUT) {
@@ -603,9 +678,9 @@ int send_reinit_filters(MusicHandle* handle) {
     handle->have_err = 0;
     ReleaseMutex(handle->mutex);
     while (handle->need_reinit_filters) {
-        GetSystemTimePreciseAsFileTime(&et);
-        if ((ft2ts(et) - ft2ts(st)) >= ((uint64_t)handle->s->max_wait_time * 10000)) return FFMPEG_CORE_ERR_WAIT_TIMEOUT;
-        Sleep(10);
+        et = time_util::time_ns();
+        if ((et - st) >= ((size_t)handle->s->max_wait_time * 1000000)) return FFMPEG_CORE_ERR_WAIT_TIMEOUT;
+        time_util::mssleep(10);
     }
     return handle->have_err ? handle->err : FFMPEG_CORE_ERR_OK;
 }
@@ -670,99 +745,113 @@ int ffmpeg_core_get_error(MusicHandle* handle) {
     return handle->have_err ? handle->err : 0;
 }
 
-const wchar_t* ffmpeg_core_get_err_msg2(int err) {
-    if (err < 0) return L"An error occured in ffmpeg.";
+const CORE_CHAR* ffmpeg_core_get_err_msg2(int err) {
+    if (err < 0) return CCORE_CHAR("An error occured in ffmpeg.");
     switch (err) {
         case FFMPEG_CORE_ERR_OK:
-            return L"No error occured.";
+            return CCORE_CHAR("No error occured.");
         case FFMPEG_CORE_ERR_NULLPTR:
-            return L"Got an unexpected null pointer.";
+            return CCORE_CHAR("Got an unexpected null pointer.");
         case FFMPEG_CORE_ERR_INVAILD_NAME:
-            return L"URI contains invalid chars.";
+            return CCORE_CHAR("URI contains invalid chars.");
         case FFMPEG_CORE_ERR_OOM:
-            return L"Out of memory.";
+            return CCORE_CHAR("Out of memory.");
         case FFMPEG_CORE_ERR_NO_AUDIO_OR_DECODER:
-            return L"No audio tracks in file or decoder is not available.";
+            return CCORE_CHAR("No audio tracks in file or decoder is not available.");
         case FFMPEG_CORE_ERR_UNKNOWN_SAMPLE_FMT:
-            return L"The format of audio sample is not available.";
+            return CCORE_CHAR("The format of audio sample is not available.");
         case FFMPEG_CORE_ERR_SDL:
-            return L"An error occured in SDL.";
+            return CCORE_CHAR("An error occured in SDL.");
         case FFMPEG_CORE_ERR_FAILED_CREATE_THREAD:
-            return L"Failed to create new thread.";
+            return CCORE_CHAR("Failed to create new thread.");
         case FFMPEG_CORE_ERR_FAILED_CREATE_MUTEX:
-            return L"Failed to creare new mutex.";
+            return CCORE_CHAR("Failed to creare new mutex.");
         case FFMPEG_CORE_ERR_WAIT_MUTEX_FAILED:
-            return L"Failed to wait mutex.";
+            return CCORE_CHAR("Failed to wait mutex.");
         case FFMPEG_CORE_ERR_NO_AUDIO:
-            return L"No audio tracks in file.";
+            return CCORE_CHAR("No audio tracks in file.");
         case FFMPEG_CORE_ERR_FAILED_SET_VOLUME:
-            return L"Failed to set volume.";
+            return CCORE_CHAR("Failed to set volume.");
         case FFMPEG_CORE_ERR_FAILED_SET_SPEED:
-            return L"Failed to set speed.";
+            return CCORE_CHAR("Failed to set speed.");
         case FFMPEG_CORE_ERR_TOO_BIG_FFT_DATA_LEN:
-            return L"FFT data's length is too big.";
+            return CCORE_CHAR("FFT data's length is too big.");
         case FFMPEG_CORE_ERR_FAILED_OPEN_FILE:
-            return L"Failed to open file.";
+            return CCORE_CHAR("Failed to open file.");
         case FFMPEG_CORE_ERR_FAILED_READ_FILE:
-            return L"Failed to read file.";
+            return CCORE_CHAR("Failed to read file.");
         case FFMPEG_CORE_ERR_INVALID_CDA_FILE:
-            return L"Invalid CDA file.";
+            return CCORE_CHAR("Invalid CDA file.");
         case FFMPEG_CORE_ERR_NO_LIBCDIO:
-            return L"libcdio not found.";
+            return CCORE_CHAR("libcdio not found.");
         case FFMEPG_CORE_ERR_FAILED_PARSE_URL:
-            return L"Failed to parse url.";
+            return CCORE_CHAR("Failed to parse url.");
         case FFMPEG_CORE_ERR_FAILED_SET_EQUALIZER_CHANNEL:
-            return L"Failed to set equalizer.";
+            return CCORE_CHAR("Failed to set equalizer.");
         case FFMPEG_CORE_ERR_FAILED_INIT_WASAPI:
-            return L"Failed to initialize WASAPI.";
+            return CCORE_CHAR("Failed to initialize WASAPI.");
         case FFMEPG_CORE_ERR_FAILED_GET_WASAPI_DEVICE_PROP:
-            return L"Failed to get WASAPI audio device's property.";
+            return CCORE_CHAR("Failed to get WASAPI audio device's property.");
         case FFMPEG_CORE_ERR_WASAPI_NOT_INITED:
-            return L"WASAPI is not initialized.";
+            return CCORE_CHAR("WASAPI is not initialized.");
         case FFMPEG_CORE_ERR_WASAPI_DEVICE_NOT_FOUND:
-            return L"Can not found specified device.";
+            return CCORE_CHAR("Can not found specified device.");
         case FFMPEG_CORE_ERR_WASAPI_FAILED_OPEN_DEVICE:
-            return L"Failed to open audio device.";
+            return CCORE_CHAR("Failed to open audio device.");
         case FFMPEG_CORE_ERR_INVALID_DEVICE_NAME:
-            return L"Device name contains invalid chars.";
+            return CCORE_CHAR("Device name contains invalid chars.");
         case FFMPEG_CORE_ERR_WASAPI_NO_SUITABLE_FORMAT:
-            return L"Can not find suitable format for device.";
+            return CCORE_CHAR("Can not find suitable format for device.");
         case FFMPEG_CORE_ERR_FAILED_CREATE_EVENT:
-            return L"Failed to create new event.";
+            return CCORE_CHAR("Failed to create new event.");
         case FFMPEG_CORE_ERR_TIMEOUT:
-            return L"Operation timeout.";
+            return CCORE_CHAR("Operation timeout.");
         case FFMPEG_CORE_ERR_WAIT_TIMEOUT:
-            return L"The request is already send, but operation not completed.";
+            return CCORE_CHAR("The request is already send, but operation not completed.");
         default:
-            return L"Unknown error.";
+            return CCORE_CHAR("Unknown error.");
     }
 }
 
-wchar_t* ffmpeg_core_get_err_msg(int err) {
+CORE_CHAR* ffmpeg_core_get_err_msg(int err) {
     if (err < 0) {
         char msg[AV_ERROR_MAX_STRING_SIZE];
-        std::wstring wmsg;
         av_make_error_string(msg, AV_ERROR_MAX_STRING_SIZE, err);
+#if _WIN32
+        std::wstring wmsg;
         if (wchar_util::str_to_wstr(wmsg, msg, CP_UTF8)) {
             wchar_t* tmp = nullptr;
             if (cpp2c::string2char(wmsg, tmp)) {
                 return tmp;
             }
         }
+#else
+        char* tmp = nullptr;
+        if (cpp2c::string2char(msg, tmp)) {
+            return tmp;
+        }
+#endif
     } else if (err == FFMPEG_CORE_ERR_SDL) {
         char msg[128];
-        std::wstring wmsg;
         SDL_GetErrorMsg(msg, 128);
+#if _WIN32
+        std::wstring wmsg;
         if (wchar_util::str_to_wstr(wmsg, msg, CP_UTF8)) {
             wchar_t* tmp = nullptr;
             if (cpp2c::string2char(wmsg, tmp)) {
                 return tmp;
             }
         }
+#else
+        char* tmp = nullptr;
+        if (cpp2c::string2char(msg, tmp)) {
+            return tmp;
+        }
+#endif
     } else {
-        std::wstring wmsg = ffmpeg_core_get_err_msg2(err);
-        wchar_t* tmp = nullptr;
-        if (cpp2c::string2char(wmsg, tmp)) {
+        auto msg = ffmpeg_core_get_err_msg2(err);
+        CORE_CHAR* tmp = nullptr;
+        if (cpp2c::string2char(msg, tmp)) {
             return tmp;
         }
     }

@@ -10,13 +10,16 @@
 #if HAVE_WASAPI
 #include "wasapi.h"
 #endif
-
-#define ft2ts(t) (((uint64_t)t.dwHighDateTime << 32) | (uint64_t)t.dwLowDateTime)
+#include "time_util.h"
 
 int seek_to_pos(MusicHandle* handle) {
     if (!handle) return FFMPEG_CORE_ERR_NULLPTR;
     int re = FFMPEG_CORE_ERR_OK;
+#if _WIN32
     DWORD r = WaitForSingleObject(handle->mutex, INFINITE);
+#else
+    int r = pthread_mutex_lock(&handle->mutex);
+#endif
     AVRational base = { 1, handle->sdl_spec.freq };
     if (r != WAIT_OBJECT_0) {
         re = FFMPEG_CORE_ERR_WAIT_MUTEX_FAILED;
@@ -73,22 +76,21 @@ int reopen_file(MusicHandle* handle) {
                 doing = 1;
             }
             if (is_file_exists(handle)) break;
-            if (!doing) Sleep(10);
+            if (!doing) mssleep(10);
         }
     } else {
         int doing = 0;
-        FILETIME st;
-        GetSystemTimePreciseAsFileTime(&st);
-        FILETIME now;
-        memcpy(&now, &st, sizeof(FILETIME));
-        while ((ft2ts(now) - ft2ts(st)) < ((uint64_t)10000000 * handle->s->url_retry_interval)) {
+        size_t st, now = 0;
+        st = time_time_ns();
+        now = st;
+        while ((now - st) < ((size_t)1000000000 * handle->s->url_retry_interval)) {
             doing = 0;
             if (handle->stoping) return FFMPEG_CORE_ERR_OK;
             if (basic_event_handle(handle)) {
                 doing = 1;
             }
-            if (!doing) Sleep(10);
-            GetSystemTimePreciseAsFileTime(&now);
+            if (!doing) mssleep(10);
+            now = time_time_ns();
         }
     }
     if (handle->fmt) avformat_close_input(&handle->fmt);
@@ -149,8 +151,13 @@ int basic_event_handle(MusicHandle* h) {
     return 0;
 }
 
+#if _WIN32
 DWORD WINAPI event_loop(LPVOID handle) {
     if (!handle) return FFMPEG_CORE_ERR_NULLPTR;
+#else
+void* event_loop(void* handle) {
+    if (!handle) pthread_exit(NULL);
+#endif
     MusicHandle* h = (MusicHandle*)handle;
     int samples = h->decoder->sample_rate * 15;
     /// 本次循环是否有做事
@@ -256,14 +263,23 @@ DWORD WINAPI event_loop(LPVOID handle) {
         }
 end:
         if (!doing) {
-            Sleep(10);
+            mssleep(10);
         }
     }
+#if _WIN32
     return FFMPEG_CORE_ERR_OK;
+#else
+    pthread_exit(NULL);
+#endif
 }
 
+#if _WIN32
 DWORD WINAPI filter_loop(LPVOID handle) {
     if (!handle) return FFMPEG_CORE_ERR_NULLPTR;
+#else
+void* filter_loop(void* handle) {
+    if (!handle) pthread_exit(NULL);
+#endif
     MusicHandle* h = (MusicHandle*)handle;
     char doing = 0;
     while (1) {
@@ -285,8 +301,12 @@ DWORD WINAPI filter_loop(LPVOID handle) {
         }
 end:
         if (!doing) {
-            Sleep(10);
+            mssleep(10);
         }
     }
+#if _WIN32
     return FFMPEG_CORE_ERR_OK;
+#else
+    pthread_exit(NULL);
+#endif
 }

@@ -23,7 +23,19 @@ extern "C" {
 #else
 #include "SDL2/SDL.h"
 #endif
+#if _WIN32
 #include <Windows.h>
+#define THREAD_HANDLE HANDLE
+#define MUTEX_HANDLE HANDLE
+#else
+#include <pthread.h>
+#include <time.h>
+#define THREAD_HANDLE pthread_t
+#define MUTEX_HANDLE pthread_mutex_t
+#define ReleaseMutex(mutex) pthread_mutex_unlock(&mutex)
+#define WAIT_OBJECT_0 0
+#define WAIT_TIMEOUT ETIMEDOUT
+#endif
 #include "c_linked_list.h"
 #include "urlparse.h"
 
@@ -94,13 +106,17 @@ struct SwrContext* swrac;
 /// 指定的SDL输出格式
 SDL_AudioSpec sdl_spec;
 /// 事件处理线程
-HANDLE thread;
+THREAD_HANDLE thread;
+#if _WIN32
 /// 事件处理线程线程ID
 DWORD thread_id;
+#endif
 /// 维护filters处理后缓冲区线程
-HANDLE filter_thread;
+THREAD_HANDLE filter_thread;
+#if _WIN32
 /// 维护filters处理后缓冲区线程线程ID
 DWORD filter_thread_id;
+#endif
 /// 音频缓冲区
 AVAudioFifo* buffer;
 /// 经过filters处理后的缓冲区
@@ -114,9 +130,9 @@ SDL_AudioDeviceID device_id;
 /// 错误信息（ffmpeg错误或Core错误
 int err;
 /// Mutex对象，作为线程锁（用于保护缓冲区和时间）
-HANDLE mutex;
+MUTEX_HANDLE mutex;
 /// 用来确保filter graph对象可用
-HANDLE mutex2;
+MUTEX_HANDLE mutex2;
 /// 缓冲区开始时间
 int64_t pts;
 /// 缓冲区结束时间
@@ -245,7 +261,11 @@ int reverb_type;
 } FfmpegCoreSettings;
 #if __cplusplus
 }
+#if _WIN32
 std::wstring get_metadata_str(AVDictionary* dict, const char* key, int flags);
+#else
+std::string get_metadata_str(AVDictionary* dict, const char* key, int flags);
+#endif
 inline enum AVRounding operator|(enum AVRounding a, enum AVRounding b) {
     return static_cast<enum AVRounding>(static_cast<int>(a) | static_cast<int>(b));
 }

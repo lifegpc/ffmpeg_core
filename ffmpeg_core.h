@@ -7,10 +7,25 @@ extern "C" {
 #include <stddef.h>
 #include <wchar.h>
 #include <stdarg.h>
+
+#if _WIN32
+#define CORE_CHAR wchar_t
+#define CCORE_CHAR(x) L##x
+#else
+#define CORE_CHAR char
+#define CCORE_CHAR(x) x
+#endif
+
+#if _WIN32
 #if BUILD_FFMPEG_CORE
 #define FFMPEG_CORE_API __declspec(dllexport)
 #else
 #define FFMPEG_CORE_API __declspec(dllimport)
+#endif
+#elif defined(__GNUC__)
+#define FFMPEG_CORE_API __attribute__((visibility("default")))
+#else
+#define FFMPEG_CORE_API 
 #endif
 typedef struct MusicHandle MusicHandle;
 typedef struct MusicInfoHandle MusicInfoHandle;
@@ -73,10 +88,10 @@ FFMPEG_CORE_API int32_t ffmpeg_core_version();
 FFMPEG_CORE_API int ffmpeg_core_is_wasapi_supported();
 FFMPEG_CORE_API void ffmpeg_core_dump_library_version(int use_av_log, int av_log_level);
 FFMPEG_CORE_API void ffmpeg_core_dump_ffmpeg_configuration(int use_av_log, int av_log_level);
-FFMPEG_CORE_API int ffmpeg_core_open(const wchar_t* url, MusicHandle** handle);
-FFMPEG_CORE_API int ffmpeg_core_open2(const wchar_t* url, MusicHandle** handle, FfmpegCoreSettings* s);
-FFMPEG_CORE_API int ffmpeg_core_open3(const wchar_t* url, MusicHandle** handle, FfmpegCoreSettings* s, const wchar_t* device);
-FFMPEG_CORE_API int ffmpeg_core_info_open(const wchar_t* url, MusicInfoHandle** handle);
+FFMPEG_CORE_API int ffmpeg_core_open(const CORE_CHAR* url, MusicHandle** handle);
+FFMPEG_CORE_API int ffmpeg_core_open2(const CORE_CHAR* url, MusicHandle** handle, FfmpegCoreSettings* s);
+FFMPEG_CORE_API int ffmpeg_core_open3(const CORE_CHAR* url, MusicHandle** handle, FfmpegCoreSettings* s, const CORE_CHAR* device);
+FFMPEG_CORE_API int ffmpeg_core_info_open(const CORE_CHAR* url, MusicInfoHandle** handle);
 FFMPEG_CORE_API int ffmpeg_core_play(MusicHandle* handle);
 FFMPEG_CORE_API int ffmpeg_core_pause(MusicHandle* handle);
 FFMPEG_CORE_API int ffmpeg_core_seek(MusicHandle* handle, int64_t time);
@@ -90,13 +105,13 @@ FFMPEG_CORE_API int ffmpeg_core_get_error(MusicHandle* handle);
  * @param err 错误代码
  * @return 错误消息，需要调用free释放内存
 */
-FFMPEG_CORE_API wchar_t* ffmpeg_core_get_err_msg(int err);
+FFMPEG_CORE_API CORE_CHAR* ffmpeg_core_get_err_msg(int err);
 /**
  * @brief 返回错误代码对应的错误消息
  * @param err 错误代码（仅处理>=0的错误）
  * @return 错误消息
 */
-FFMPEG_CORE_API const wchar_t* ffmpeg_core_get_err_msg2(int err);
+FFMPEG_CORE_API const CORE_CHAR* ffmpeg_core_get_err_msg2(int err);
 /**
  * @brief 获取当前播放位置
  * @param handle Handle
@@ -156,8 +171,8 @@ FFMPEG_CORE_API int64_t ffmpeg_core_info_get_bitrate(MusicInfoHandle* handle);
  * @param key 元数据Key
  * @return 结果，需要手动调用free释放内存
 */
-FFMPEG_CORE_API wchar_t* ffmpeg_core_get_metadata(MusicHandle* handle, const char* key);
-FFMPEG_CORE_API wchar_t* ffmpeg_core_info_get_metadata(MusicInfoHandle* handle, const char* key);
+FFMPEG_CORE_API CORE_CHAR* ffmpeg_core_get_metadata(MusicHandle* handle, const char* key);
+FFMPEG_CORE_API CORE_CHAR* ffmpeg_core_info_get_metadata(MusicInfoHandle* handle, const char* key);
 FFMPEG_CORE_API int ffmpeg_core_get_fft_data(MusicHandle* handle, float* fft_data, int len);
 FFMPEG_CORE_API FfmpegCoreSettings* ffmpeg_core_init_settings();
 FFMPEG_CORE_API int ffmpeg_core_settings_set_volume(FfmpegCoreSettings* s, int volume);

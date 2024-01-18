@@ -6,6 +6,8 @@
 #include "equalizer.h"
 #include "reverb.h"
 
+#include "time_util.h"
+
 int need_filters(FfmpegCoreSettings* s) {
     if (!s) return 0;
     if (!avfilter_get_by_name("abuffersink") || !avfilter_get_by_name("abuffer")) {
@@ -96,12 +98,22 @@ int reinit_filters(MusicHandle* handle) {
     if (!handle || !handle->s) return FFMPEG_CORE_ERR_NULLPTR;
     if (!need_filters(handle->s)) {
         if (!handle->graph) return FFMPEG_CORE_ERR_OK;
+#if _WIN32
         DWORD re = WaitForSingleObject(handle->mutex2, INFINITE);
         if (re != WAIT_OBJECT_0) {
+#else
+        int re = pthread_mutex_lock(&handle->mutex2);
+        if (re != 0) {
+#endif
             return FFMPEG_CORE_ERR_WAIT_MUTEX_FAILED;
         }
+#if _WIN32
         re = WaitForSingleObject(handle->mutex, INFINITE);
         if (re != WAIT_OBJECT_0) {
+#else
+        re = pthread_mutex_lock(&handle->mutex);
+        if (re != 0) {
+#endif
             ReleaseMutex(handle->mutex2);
             return FFMPEG_CORE_ERR_WAIT_MUTEX_FAILED;
         }
@@ -161,12 +173,20 @@ int reinit_filters(MusicHandle* handle) {
     }
     if (c_linked_list_count(list) == 0) {
         if (handle->graph) {
+#if _WIN32
             DWORD r = WaitForSingleObject(handle->mutex2, INFINITE);
+#else
+            int r = pthread_mutex_lock(&handle->mutex2);
+#endif
             if (r != WAIT_OBJECT_0) {
                 re = FFMPEG_CORE_ERR_WAIT_MUTEX_FAILED;
                 goto end;
             }
+#if _WIN32
             r = WaitForSingleObject(handle->mutex, INFINITE);
+#else
+            r = pthread_mutex_lock(&handle->mutex);
+#endif
             if (r != WAIT_OBJECT_0) {
                 ReleaseMutex(handle->mutex2);
                 re = FFMPEG_CORE_ERR_WAIT_MUTEX_FAILED;
@@ -194,12 +214,20 @@ int reinit_filters(MusicHandle* handle) {
         av_log(NULL, AV_LOG_FATAL, "Failed to check config of filters: %s (%i)\n", av_err2str(re), re);
         goto end;
     }
+#if _WIN32
     DWORD r = WaitForSingleObject(handle->mutex2, INFINITE);
+#else
+    int r = pthread_mutex_lock(&handle->mutex2);
+#endif
     if (r != WAIT_OBJECT_0) {
         re = FFMPEG_CORE_ERR_WAIT_MUTEX_FAILED;
         goto end;
     }
+#if _WIN32
     r = WaitForSingleObject(handle->mutex, INFINITE);
+#else
+    r = pthread_mutex_lock(&handle->mutex);
+#endif
     if (r != WAIT_OBJECT_0) {
         ReleaseMutex(handle->mutex2);
         re = FFMPEG_CORE_ERR_WAIT_MUTEX_FAILED;
@@ -294,7 +322,13 @@ int create_src_and_sink(AVFilterGraph** graph, AVFilterContext** src, AVFilterCo
 
 int add_data_to_filters_buffer(MusicHandle* handle) {
     if (!handle) return FFMPEG_CORE_ERR_NULLPTR;
+#if _WIN32
     DWORD re = WaitForSingleObject(handle->mutex2, INFINITE);
+#else
+    int re = pthread_mutex_lock(&handle->mutex2);
+    struct timespec ts;
+    size_t ts_now;
+#endif
     int r = FFMPEG_CORE_ERR_OK;
     AVFrame* in = NULL, * out = NULL;
     int samples_need = 1000;
@@ -307,7 +341,15 @@ int add_data_to_filters_buffer(MusicHandle* handle) {
     AVRational base = { 1000, 1000 }, target = { 1, 1 };
     if (re == WAIT_TIMEOUT) return FFMPEG_CORE_ERR_OK;
     else if (re != WAIT_OBJECT_0) return FFMPEG_CORE_ERR_WAIT_MUTEX_FAILED;
+#if _WIN32
     re = WaitForSingleObject(handle->mutex, 10);
+#else
+    ts_now = time_time_ns();
+    ts_now += 10 * 1000000;
+    ts.tv_sec = ts_now / 1000000000;
+    ts.tv_nsec = ts_now % 1000000000;
+    re = pthread_mutex_timedlock(&handle->mutex, &ts);
+#endif
     if (re == WAIT_TIMEOUT) {
         ReleaseMutex(handle->mutex2);
         return FFMPEG_CORE_ERR_OK;
@@ -384,7 +426,11 @@ outp:
         if (r == AVERROR(EAGAIN)) r = FFMPEG_CORE_ERR_OK;
         goto end;
     }
+#if _WIN32
     re = WaitForSingleObject(handle->mutex, INFINITE);
+#else
+    re = pthread_mutex_lock(&handle->mutex);
+#endif
     if (re != WAIT_OBJECT_0) {
         r = FFMPEG_CORE_ERR_WAIT_MUTEX_FAILED;
         goto end;
