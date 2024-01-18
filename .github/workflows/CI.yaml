@@ -30,6 +30,7 @@ jobs:
           mingw64/mingw-w64-x86_64-zlib
           mingw64/mingw-w64-x86_64-libcdio-paranoia
           mingw64/mingw-w64-x86_64-gnutls
+          mingw64/mingw-w64-x86_64-egl-headers
     - name: Get Cache Key
       id: cache_key
       shell: cmd
@@ -101,6 +102,7 @@ jobs:
           mingw64/mingw-w64-x86_64-zlib
           mingw64/mingw-w64-x86_64-libcdio-paranoia
           mingw64/mingw-w64-x86_64-gnutls
+          mingw64/mingw-w64-x86_64-egl-headers
     - name: Get Cache Key
       id: cache_key
       shell: cmd
@@ -172,6 +174,7 @@ jobs:
           mingw64/mingw-w64-x86_64-zlib
           mingw64/mingw-w64-x86_64-libcdio-paranoia
           mingw64/mingw-w64-x86_64-gnutls
+          mingw64/mingw-w64-x86_64-egl-headers
     - name: Get Cache Key
       id: cache_key
       shell: cmd
@@ -243,6 +246,7 @@ jobs:
           mingw64/mingw-w64-x86_64-zlib
           mingw64/mingw-w64-x86_64-libcdio-paranoia
           mingw64/mingw-w64-x86_64-gnutls
+          mingw64/mingw-w64-x86_64-egl-headers
     - name: Get Cache Key
       id: cache_key
       shell: cmd
@@ -314,6 +318,7 @@ jobs:
           mingw32/mingw-w64-i686-zlib
           mingw32/mingw-w64-i686-libcdio-paranoia
           mingw32/mingw-w64-i686-gnutls
+          mingw32/mingw-w64-i686-egl-headers
     - name: Get Cache Key
       id: cache_key
       shell: cmd
@@ -385,6 +390,7 @@ jobs:
           mingw32/mingw-w64-i686-zlib
           mingw32/mingw-w64-i686-libcdio-paranoia
           mingw32/mingw-w64-i686-gnutls
+          mingw32/mingw-w64-i686-egl-headers
     - name: Get Cache Key
       id: cache_key
       shell: cmd
@@ -456,6 +462,7 @@ jobs:
           mingw32/mingw-w64-i686-zlib
           mingw32/mingw-w64-i686-libcdio-paranoia
           mingw32/mingw-w64-i686-gnutls
+          mingw32/mingw-w64-i686-egl-headers
     - name: Get Cache Key
       id: cache_key
       shell: cmd
@@ -527,6 +534,7 @@ jobs:
           mingw32/mingw-w64-i686-zlib
           mingw32/mingw-w64-i686-libcdio-paranoia
           mingw32/mingw-w64-i686-gnutls
+          mingw32/mingw-w64-i686-egl-headers
     - name: Get Cache Key
       id: cache_key
       shell: cmd
