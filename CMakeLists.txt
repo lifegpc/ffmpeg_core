@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.0)
+cmake_minimum_required(VERSION 3.5)
 
 project(ffmpeg_core)
 
@@ -76,6 +76,8 @@ src/reverb.h
 src/reverb.c
 src/linked_list/float_linked_list.h
 src/linked_list/float_linked_list.cpp
+src/mixing.h
+src/mixing.c
 "${CMAKE_CURRENT_BINARY_DIR}/ffmpeg_core.rc"
 "${CMAKE_CURRENT_BINARY_DIR}/ffmpeg_core_version.h"
 "${CMAKE_CURRENT_BINARY_DIR}/ffmpeg_core_config.h"

@@ -240,12 +240,6 @@ int max_retry_count;
 int url_retry_interval;
 /// 均衡器
 EqualizerChannels* equalizer_channels;
-#if HAVE_WASAPI
-/// 是否使用WASAPI
-unsigned char use_wasapi : 1;
-/// 是否启用独占模式
-unsigned char enable_exclusive : 1;
-#endif
 /// 最大等待时间（单位ms），seek等操作最长等待完成时间
 int max_wait_time;
 #if HAVE_WASAPI
@@ -258,6 +252,28 @@ float reverb_mix;
 float reverb_delay;
 /// 混响类型
 int reverb_type;
+/// 矩阵编码方式
+int matrix_encoding;
+/// 中置声道混流级别
+double center_mix_level;
+/// 环绕声道混流级别
+double surround_mix_level;
+/// LFE声道混流级别
+double lfe_mix_level;
+#if HAVE_WASAPI
+/// 是否使用WASAPI
+unsigned char use_wasapi : 1;
+/// 是否启用独占模式
+unsigned char enable_exclusive : 1;
+#endif
+/// 是否启用混流
+unsigned char enable_mixing : 1;
+/// 是否对双声道来源禁用混流
+unsigned char do_not_mix_stereo : 1;
+/// 是否启用标准化矩阵
+unsigned char normalize_matrix : 1;
+/// 是否启用音量保护
+unsigned char clip_protection : 1;
 } FfmpegCoreSettings;
 #if __cplusplus
 }

@@ -13,6 +13,7 @@
 #include "output.h"
 #include "wchar_util.h"
 #include "ch_layout.h"
+#include "mixing.h"
 
 #define GET_WIN_ERROR(errmsg, hr) std::string errmsg; \
 if (!err::get_winerror(errmsg, hr)) errmsg = "(null)"; \
@@ -652,6 +653,7 @@ int init_wasapi_output(MusicHandle* handle, const char* device) {
         re = FFMPEG_CORE_ERR_OOM;
         goto end;
     }
+    set_mixing_opts(handle);
     if ((re = swr_init(handle->swrac)) < 0) {
         goto end;
     }
@@ -826,6 +828,7 @@ int reinit_wasapi_output(MusicHandle* handle) {
         re = FFMPEG_CORE_ERR_OOM;
         goto end;
     }
+    set_mixing_opts(handle);
     if ((re = swr_init(handle->swrac)) < 0) {
         goto end;
     }

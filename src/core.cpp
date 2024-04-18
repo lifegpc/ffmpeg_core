@@ -698,6 +698,11 @@ FfmpegCoreSettings* ffmpeg_core_init_settings() {
 #if HAVE_WASAPI
     s->wasapi_min_buffer_time = 20;
 #endif
+    s->enable_mixing = 1;
+    s->center_mix_level = 1.0;
+    s->surround_mix_level = 0.71;
+    s->do_not_mix_stereo = 1;
+    s->clip_protection = 1;
     return s;
 }
 

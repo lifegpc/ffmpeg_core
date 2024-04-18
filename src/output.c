@@ -8,6 +8,7 @@
 #else
 #define ADD_POSITION_DATA(len, have_data)
 #endif
+#include "mixing.h"
 
 #include "time_util.h"
 
@@ -54,6 +55,7 @@ int init_output(MusicHandle* handle, const char* device) {
         av_log(NULL, AV_LOG_FATAL, "Failed to allocate resample context.\n");
         return FFMPEG_CORE_ERR_OOM;
     }
+    set_mixing_opts(handle);
     if ((re = swr_init(handle->swrac)) < 0) {
         return re;
     }

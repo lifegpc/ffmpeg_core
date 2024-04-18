@@ -70,6 +70,14 @@ struct DeviceNameList* next;
 #define REVERB_TYPE_OFF 0
 #define REVERB_TYPE_ROOM 1
 #define REVERB_TYPE_MAX 1
+#define MATRIX_ENCODING_NONE 0
+#define MATRIX_ENCODING_DOLBY 1
+#define MATRIX_ENCODING_DPLII 2
+#define MATRIX_ENCODING_DPLIIX 3
+#define MATRIX_ENCODING_DPLIIZ 4
+#define MATRIX_ENCODING_DOLBYEX 5
+#define MATRIX_ENCODING_DOLBYHEADPHONE 6
+#define MATRIX_ENCODING_NB 7
 FFMPEG_CORE_API void free_music_handle(MusicHandle* handle);
 FFMPEG_CORE_API void free_music_info_handle(MusicInfoHandle* handle);
 FFMPEG_CORE_API void free_ffmpeg_core_settings(FfmpegCoreSettings* s);
