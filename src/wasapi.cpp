@@ -491,6 +491,7 @@ int open_WASAPI_device(MusicHandle* handle, const wchar_t* name, bool allow_chan
         re = FFMPEG_CORE_ERR_FAILED_CREATE_THREAD;
         goto end;
     }
+    SetThreadPriority(handle->wasapi->thread, THREAD_PRIORITY_TIME_CRITICAL);
 end:
     comfree(device);
     if (target_fmt) {
