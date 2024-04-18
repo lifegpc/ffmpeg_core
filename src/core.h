@@ -260,6 +260,8 @@ double center_mix_level;
 double surround_mix_level;
 /// LFE声道混流级别
 double lfe_mix_level;
+/// 最大等待缓冲区时间（超时会填充空白数据）（单位：ms）
+int max_wait_buffer_time;
 #if HAVE_WASAPI
 /// 是否使用WASAPI
 unsigned char use_wasapi : 1;

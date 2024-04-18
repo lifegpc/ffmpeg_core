@@ -699,10 +699,11 @@ FfmpegCoreSettings* ffmpeg_core_init_settings() {
     s->wasapi_min_buffer_time = 20;
 #endif
     s->enable_mixing = 1;
-    s->center_mix_level = 1.0;
+    s->center_mix_level = 0.71;
     s->surround_mix_level = 0.71;
     s->do_not_mix_stereo = 1;
     s->clip_protection = 1;
+    s->max_wait_buffer_time = 5;
     return s;
 }
 
@@ -985,4 +986,11 @@ int ffmpeg_core_set_reverb(MusicHandle* handle, int type, float mix, float time)
     int re = ffmpeg_core_settings_set_reverb(handle->s, type, mix, time);
     if (!re) return AVERROR(EINVAL);
     return send_reinit_filters(handle);
+}
+
+int ffmpeg_core_settings_set_max_wait_buffer_time(FfmpegCoreSettings* s, int time) {
+    if (!s) return 0;
+    if (time < 1 || time > 5) return 0;
+    s->max_wait_buffer_time = time;
+    return 1;
 }

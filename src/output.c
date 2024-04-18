@@ -116,11 +116,11 @@ void SDL_callback(void* userdata, uint8_t* stream, int len) {
     }
 #endif
 #if _WIN32
-    DWORD re = WaitForSingleObject(handle->mutex, 5);
+    DWORD re = WaitForSingleObject(handle->mutex, handle->s->max_wait_buffer_time);
 #else
     struct timespec ts;
     size_t now = time_time_ns();
-    now += 5 * 1000000;
+    now += handle->s->max_wait_buffer_time * 1000000;
     ts.tv_sec = now / 1000000000;
     ts.tv_nsec = now % 1000000000;
     int re = pthread_mutex_timedlock(&handle->mutex, &ts);

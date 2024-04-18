@@ -194,6 +194,7 @@ FFMPEG_CORE_API int ffmpeg_core_settings_set_enable_exclusive(FfmpegCoreSettings
 FFMPEG_CORE_API int ffmpeg_core_settings_set_max_wait_time(FfmpegCoreSettings* s, int timeout);
 FFMPEG_CORE_API int ffmpeg_core_settings_set_wasapi_min_buffer_time(FfmpegCoreSettings* s, int time);
 FFMPEG_CORE_API int ffmpeg_core_settings_set_reverb(FfmpegCoreSettings* s, int type, float mix, float time);
+FFMPEG_CORE_API int ffmpeg_core_settings_set_max_wait_buffer_time(FfmpegCoreSettings* s, int time);
 FFMPEG_CORE_API DeviceNameList* ffmpeg_core_get_audio_devices();
 #ifdef __cplusplus
 }
