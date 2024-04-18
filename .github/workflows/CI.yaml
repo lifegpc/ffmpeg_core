@@ -785,3 +785,211 @@ jobs:
       with:
         name: msvc-x64-release-pdb
         path: ./msvc-x64-release-pdb.7z
+  msvc-x64-wasapi-debug:
+    runs-on: windows-2022
+    defaults:
+      run:
+        shell: cmd
+    steps:
+    - name: Check Out
+      uses: actions/checkout@v3
+      with:
+        fetch-depth: 0
+        submodules: true
+    - name: Get Cache Key
+      id: cache_key
+      shell: cmd
+      run: |
+        cd scripts
+        python get_cache_key.py msvc-x64 zlib bzlib gnutls cdio cdio-paranoia pkgconf SDL2 ffmpeg || exit 1
+    - name: Cache
+      id: cache
+      uses: actions/cache@v3
+      with:
+        path: clib/
+        key: msvc-x64-wasapi-debug-${{ steps.cache_key.outputs.cache_key }}
+    - name: Install Meson and Ninja
+      if: steps.cache.outputs.cache-hit != 'true'
+      run: |
+        python -m pip install --upgrade meson ninja
+    - name: Setup CL
+      if: steps.cache.outputs.cache-hit != 'true'
+      uses: ilammy/msvc-dev-cmd@v1
+    - name: Set up NASM
+      if: steps.cache.outputs.cache-hit != 'true'
+      uses: ilammy/setup-nasm@v1
+    - name: Setup MSYS2
+      if: steps.cache.outputs.cache-hit != 'true'
+      uses: msys2/setup-msys2@v2
+      with:
+        msystem: MINGW64
+        update: true
+        install: >-
+          base-devel
+    - name: Build zlib
+      if: steps.cache.outputs.cache-hit != 'true'
+      run: |
+        COPY /Y scripts\build_zlib_msvc-x64.bat || exit 1
+        CALL build_zlib_msvc-x64.bat || exit 1
+    - name: Build bzlib
+      if: steps.cache.outputs.cache-hit != 'true'
+      run: |
+        COPY /Y scripts\build_bzlib_msvc-x64.bat || exit 1
+        CALL build_bzlib_msvc-x64.bat || exit 1
+    - name: Download gnutls
+      if: steps.cache.outputs.cache-hit != 'true'
+      run: |
+        COPY /Y scripts\download_gnutls_msvc-x64.bat || exit 1
+        CALL download_gnutls_msvc-x64.bat || exit 1
+    - name: Download libcdio
+      if: steps.cache.outputs.cache-hit != 'true'
+      run: |
+        COPY /Y scripts\download_cdio_msvc-x64.bat || exit 1
+        CALL scripts\download_cdio_msvc-x64.bat || exit 1
+        COPY /Y scripts\download_cdio-paranoia_msvc-x64.bat || exit 1
+        CALL download_cdio-paranoia_msvc-x64.bat || exit 1
+    - name: Build pkgconf
+      if: steps.cache.outputs.cache-hit != 'true'
+      run: |
+        COPY /Y scripts\build_pkgconf_msvc-x64.bat || exit 1
+        CALL build_pkgconf_msvc-x64.bat || exit 1
+    - name: Build SDL2
+      if: steps.cache.outputs.cache-hit != 'true'
+      run: |
+        COPY /Y scripts\build_SDL2_msvc-x64.bat || exit 1
+        CALL build_SDL2_msvc-x64.bat || exit 1
+    - name: Build FFMPEG
+      if: steps.cache.outputs.cache-hit != 'true'
+      shell: msys2 {0}
+      env:
+        MSYS2_PATH_TYPE: inherit
+      run: |
+        cp scripts/build_ffmpeg_msvc-x64.sh -v ./ || exit 1
+        ./build_ffmpeg_msvc-x64.sh || exit 1
+    - name: Build FFMPEG Core
+      run: |
+        COPY /Y scripts\build_ffmpeg_core_msvc-x64-wasapi-debug.bat || exit 1
+        CALL build_ffmpeg_core_msvc-x64-wasapi-debug.bat || exit 1
+    - name: Download lld-rust
+      run: |
+        COPY /Y scripts\download_lld-rust.bat || exit 1
+        download_lld-rust || exit 1
+    - name: Pack programs
+      run: |
+        SET PATH=%CD%\clib\bin;%PATH%
+        python scripts/pack_prog.py -o msvc-x64-wasapi-debug.7z %CD%\lib\bin\ffmpeg_core.dll || exit 1
+        python scripts/pack_prog.py -o msvc-x64-wasapi-debug-pdb.7z -p %CD%\lib\bin\ffmpeg_core.dll || exit 1
+    - name: Upload files
+      uses: actions/upload-artifact@v3
+      with:
+        name: msvc-x64-wasapi-debug
+        path: ./msvc-x64-wasapi-debug.7z
+    - name: Upload PDB files
+      uses: actions/upload-artifact@v3
+      with:
+        name: msvc-x64-wasapi-debug-pdb
+        path: ./msvc-x64-wasapi-debug-pdb.7z
+  msvc-x64-wasapi-release:
+    runs-on: windows-2022
+    defaults:
+      run:
+        shell: cmd
+    steps:
+    - name: Check Out
+      uses: actions/checkout@v3
+      with:
+        fetch-depth: 0
+        submodules: true
+    - name: Get Cache Key
+      id: cache_key
+      shell: cmd
+      run: |
+        cd scripts
+        python get_cache_key.py msvc-x64 zlib bzlib gnutls cdio cdio-paranoia pkgconf SDL2 ffmpeg || exit 1
+    - name: Cache
+      id: cache
+      uses: actions/cache@v3
+      with:
+        path: clib/
+        key: msvc-x64-wasapi-release-${{ steps.cache_key.outputs.cache_key }}
+    - name: Install Meson and Ninja
+      if: steps.cache.outputs.cache-hit != 'true'
+      run: |
+        python -m pip install --upgrade meson ninja
+    - name: Setup CL
+      if: steps.cache.outputs.cache-hit != 'true'
+      uses: ilammy/msvc-dev-cmd@v1
+    - name: Set up NASM
+      if: steps.cache.outputs.cache-hit != 'true'
+      uses: ilammy/setup-nasm@v1
+    - name: Setup MSYS2
+      if: steps.cache.outputs.cache-hit != 'true'
+      uses: msys2/setup-msys2@v2
+      with:
+        msystem: MINGW64
+        update: true
+        install: >-
+          base-devel
+    - name: Build zlib
+      if: steps.cache.outputs.cache-hit != 'true'
+      run: |
+        COPY /Y scripts\build_zlib_msvc-x64.bat || exit 1
+        CALL build_zlib_msvc-x64.bat || exit 1
+    - name: Build bzlib
+      if: steps.cache.outputs.cache-hit != 'true'
+      run: |
+        COPY /Y scripts\build_bzlib_msvc-x64.bat || exit 1
+        CALL build_bzlib_msvc-x64.bat || exit 1
+    - name: Download gnutls
+      if: steps.cache.outputs.cache-hit != 'true'
+      run: |
+        COPY /Y scripts\download_gnutls_msvc-x64.bat || exit 1
+        CALL download_gnutls_msvc-x64.bat || exit 1
+    - name: Download libcdio
+      if: steps.cache.outputs.cache-hit != 'true'
+      run: |
+        COPY /Y scripts\download_cdio_msvc-x64.bat || exit 1
+        CALL scripts\download_cdio_msvc-x64.bat || exit 1
+        COPY /Y scripts\download_cdio-paranoia_msvc-x64.bat || exit 1
+        CALL download_cdio-paranoia_msvc-x64.bat || exit 1
+    - name: Build pkgconf
+      if: steps.cache.outputs.cache-hit != 'true'
+      run: |
+        COPY /Y scripts\build_pkgconf_msvc-x64.bat || exit 1
+        CALL build_pkgconf_msvc-x64.bat || exit 1
+    - name: Build SDL2
+      if: steps.cache.outputs.cache-hit != 'true'
+      run: |
+        COPY /Y scripts\build_SDL2_msvc-x64.bat || exit 1
+        CALL build_SDL2_msvc-x64.bat || exit 1
+    - name: Build FFMPEG
+      if: steps.cache.outputs.cache-hit != 'true'
+      shell: msys2 {0}
+      env:
+        MSYS2_PATH_TYPE: inherit
+      run: |
+        cp scripts/build_ffmpeg_msvc-x64.sh -v ./ || exit 1
+        ./build_ffmpeg_msvc-x64.sh || exit 1
+    - name: Build FFMPEG Core
+      run: |
+        COPY /Y scripts\build_ffmpeg_core_msvc-x64-wasapi-release.bat || exit 1
+        CALL build_ffmpeg_core_msvc-x64-wasapi-release.bat || exit 1
+    - name: Download lld-rust
+      run: |
+        COPY /Y scripts\download_lld-rust.bat || exit 1
+        download_lld-rust || exit 1
+    - name: Pack programs
+      run: |
+        SET PATH=%CD%\clib\bin;%PATH%
+        python scripts/pack_prog.py -o msvc-x64-wasapi-release.7z %CD%\lib\bin\ffmpeg_core.dll || exit 1
+        python scripts/pack_prog.py -o msvc-x64-wasapi-release-pdb.7z -p %CD%\lib\bin\ffmpeg_core.dll || exit 1
+    - name: Upload files
+      uses: actions/upload-artifact@v3
+      with:
+        name: msvc-x64-wasapi-release
+        path: ./msvc-x64-wasapi-release.7z
+    - name: Upload PDB files
+      uses: actions/upload-artifact@v3
+      with:
+        name: msvc-x64-wasapi-release-pdb
+        path: ./msvc-x64-wasapi-release-pdb.7z
