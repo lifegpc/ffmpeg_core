@@ -1,7 +1,7 @@
 #ifndef _MUSICPLAYER2_WASAPI_H
 #define _MUSICPLAYER2_WASAPI_H
-#if __cplusplus
 #include "core.h"
+#if __cplusplus
 extern "C" {
 #endif
 #include <audioclient.h>
