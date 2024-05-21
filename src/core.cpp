@@ -55,12 +55,15 @@ void free_music_handle(MusicHandle* handle) {
                 break;
             }
         }
-#else
+#elif HAVE_PTHREAD_TRYJOIN_NP
         int status = pthread_tryjoin_np(handle->thread, nullptr);
         if (status == EBUSY) {
             handle->stoping = 1;
             pthread_join(handle->thread, nullptr);
         }
+#else
+    handle->stoping = 1;
+    pthread_join(handle->thread, nullptr);
 #endif
     }
     if (handle->filter_thread) {
@@ -75,12 +78,15 @@ void free_music_handle(MusicHandle* handle) {
                 break;
             }
         }
-#else
+#elif HAVE_PTHREAD_TRYJOIN_NP
         int status = pthread_tryjoin_np(handle->filter_thread, nullptr);
         if (status == EBUSY) {
             handle->stoping = 1;
             pthread_join(handle->filter_thread, nullptr);
         }
+#else
+    handle->stoping = 1;
+    pthread_join(handle->filter_thread, nullptr);
 #endif
     }
     if (handle->graph) {
